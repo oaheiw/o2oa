@@ -4,7 +4,7 @@ MWF.xDesktop.requireApp("query.Query", "Viewer", null, false);
 MWF.xApplication.process.Xform.View = MWF.APPView =  new Class({
 	Extends: MWF.APP$Module,
     options: {
-        "moduleEvents": ["load", "queryLoad", "postLoad", "select", "openDocument"]
+        "moduleEvents": ["load", "loadView", "queryLoad", "postLoad", "select", "openDocument"]
     },
 
     _loadUserInterface: function(){
@@ -50,6 +50,7 @@ MWF.xApplication.process.Xform.View = MWF.APPView =  new Class({
             }.bind(this));
         }
 
+        //var data = JSON.parse(this.json.data);
         var viewJson = {
             "application": (this.json.queryView) ? this.json.queryView.appName : this.json.application,
             "viewName": (this.json.queryView) ? this.json.queryView.name : this.json.viewName,
@@ -65,6 +66,9 @@ MWF.xApplication.process.Xform.View = MWF.APPView =  new Class({
             this.view = new MWF.xApplication.query.Query.Viewer(this.node, viewJson, {
                 "isload": (this.json.loadView!=="no"),
                 "resizeNode": (this.node.getStyle("height").toString().toLowerCase()!=="auto" && this.node.getStyle("height").toInt()>0),
+                "onLoadView": function(){
+                    this.fireEvent("loadView");
+                }.bind(this),
                 "onSelect": function(){
                     this.fireEvent("select");
                 }.bind(this),

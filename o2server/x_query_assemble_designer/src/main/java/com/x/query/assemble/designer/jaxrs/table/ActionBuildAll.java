@@ -20,6 +20,7 @@ import org.apache.commons.lang3.SystemUtils;
 
 import com.x.base.core.container.EntityManagerContainer;
 import com.x.base.core.container.factory.EntityManagerContainerFactory;
+import com.x.base.core.container.factory.PersistenceXmlHelper;
 import com.x.base.core.entity.dynamic.DynamicEntity;
 import com.x.base.core.entity.dynamic.DynamicEntityBuilder;
 import com.x.base.core.project.config.Config;
@@ -54,6 +55,9 @@ class ActionBuildAll extends BaseAction {
 			FileUtils.cleanDirectory(src);
 			FileUtils.cleanDirectory(target);
 			List<Table> tables = emc.listAll(Table.class);
+			boolean empty = true;
+			/* 产生用于创建persistence.xml */
+			List<String> classNames = new ArrayList<>();
 			for (Table table : tables) {
 				emc.beginTransaction(Table.class);
 				table.setBuildSuccess(false);
@@ -65,6 +69,8 @@ class ActionBuildAll extends BaseAction {
 						DynamicEntityBuilder builder = new DynamicEntityBuilder(dynamicEntity, src);
 						builder.build();
 						table.setBuildSuccess(true);
+						classNames.add(dynamicEntity.className());
+						empty = false;
 					}
 				} catch (Exception e) {
 					throw e;
@@ -73,29 +79,36 @@ class ActionBuildAll extends BaseAction {
 				}
 			}
 
-			List<File> classPath = new ArrayList<>();
-			classPath.addAll(FileUtils.listFiles(Config.dir_commons_ext(), FileFilterUtils.suffixFileFilter(DOT_JAR),
-					DirectoryFileFilter.INSTANCE));
-			classPath.addAll(FileUtils.listFiles(Config.dir_store_jars(), FileFilterUtils.suffixFileFilter(DOT_JAR),
-					DirectoryFileFilter.INSTANCE));
+			if (!empty) {
 
-			JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-			StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null,
-					DefaultCharset.charset_utf_8);
-			fileManager.setLocation(StandardLocation.CLASS_OUTPUT, Arrays.asList(target));
-			fileManager.setLocation(StandardLocation.SOURCE_PATH, Arrays.asList(src));
-			fileManager.setLocation(StandardLocation.CLASS_PATH, classPath);
-			Iterable<JavaFileObject> res = fileManager.list(StandardLocation.SOURCE_PATH, DynamicEntity.CLASS_PACKAGE,
-					EnumSet.of(JavaFileObject.Kind.SOURCE), true);
-			compiler.getTask(null, fileManager, null, null, null, res).call();
+				PersistenceXmlHelper.directWrite(new File(target, "META-INF/persistence.xml").getAbsolutePath(),
+						classNames);
+				List<File> classPath = new ArrayList<>();
+				classPath.addAll(FileUtils.listFiles(Config.dir_commons_ext(),
+						FileFilterUtils.suffixFileFilter(DOT_JAR), DirectoryFileFilter.INSTANCE));
+				classPath.addAll(FileUtils.listFiles(Config.dir_store_jars(), FileFilterUtils.suffixFileFilter(DOT_JAR),
+						DirectoryFileFilter.INSTANCE));
 
-			fileManager.close();
+				// JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+				JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+				StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null,
+						DefaultCharset.charset_utf_8);
+				fileManager.setLocation(StandardLocation.CLASS_OUTPUT, Arrays.asList(target));
+				fileManager.setLocation(StandardLocation.SOURCE_PATH, Arrays.asList(src));
+				fileManager.setLocation(StandardLocation.CLASS_PATH, classPath);
 
-			this.enhance();
+				Iterable<JavaFileObject> res = fileManager.list(StandardLocation.SOURCE_PATH,
+						DynamicEntity.CLASS_PACKAGE, EnumSet.of(JavaFileObject.Kind.SOURCE), true);
 
-			File jar = new File(Config.dir_dynamic_jars(true), DynamicEntity.JAR_NAME + DOT_JAR);
-			JarTools.jar(target, jar);
+				compiler.getTask(null, fileManager, null, null, null, res).call();
 
+				fileManager.close();
+
+				this.enhance();
+
+				File jar = new File(Config.dir_dynamic_jars(true), DynamicEntity.JAR_NAME + DOT_JAR);
+				JarTools.jar(target, jar);
+			}
 			Wo wo = new Wo();
 			wo.setValue(true);
 			result.setData(wo);

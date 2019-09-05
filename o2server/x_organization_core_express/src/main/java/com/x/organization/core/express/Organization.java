@@ -6,8 +6,9 @@ import java.util.List;
 
 import com.x.base.core.project.AbstractContext;
 import com.x.base.core.project.gson.GsonPropertyObject;
-import com.x.base.core.project.http.EffectivePerson;
 import com.x.base.core.project.organization.OrganizationDefinition;
+import com.x.organization.core.express.empower.EmpowerFactory;
+import com.x.organization.core.express.empowerlog.EmpowerLogFactory;
 import com.x.organization.core.express.group.GroupFactory;
 import com.x.organization.core.express.identity.IdentityFactory;
 import com.x.organization.core.express.person.PersonFactory;
@@ -95,6 +96,24 @@ public class Organization {
 			this.unitDuty = new UnitDutyFactory(context);
 		}
 		return unitDuty;
+	}
+
+	private EmpowerFactory empower;
+
+	public EmpowerFactory empower() throws Exception {
+		if (null == this.empower) {
+			this.empower = new EmpowerFactory(context);
+		}
+		return empower;
+	}
+
+	private EmpowerLogFactory empowerLog;
+
+	public EmpowerLogFactory empowerLog() throws Exception {
+		if (null == this.empowerLog) {
+			this.empowerLog = new EmpowerLogFactory(context);
+		}
+		return empowerLog;
 	}
 
 	/** 根据个人身份获取组织 */

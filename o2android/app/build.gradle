@@ -10,23 +10,19 @@ ext {
     signingConfigKeyPassword = ""
     signingConfigStoreFilePath = ""
     signingConfigStorePassword = ""
-    jpushAppKeyDebug = ""
-    pgyAppIdDebug = ""
-    baiduAppIdDebug = ""
-    baiduSecretDebug = ""
-    baiduAppKeyDebug = ""
-    jpushAppKeyRelease = ""
-    pgyAppIdRelease = ""
-    baiduAppIdRelease = ""
-    baiduSecretRelease = ""
-    baiduAppKeyRelease = ""
+
+    jpushAppKey = ""
+    pgyAppId = ""
+    baiduSpeechAppId = ""
+    baiduSpeechSecret = ""
+    baiduSpeechAppKey = ""
+    baiduMapAppKey = ""
     jpushIMPassword = ""
     buglyAppId = ""
 }
 
 
 def loadProperties() {
-    // load properties
     Properties properties = new Properties()
     properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
@@ -34,25 +30,17 @@ def loadProperties() {
     project.signingConfigKeyPassword = properties.getProperty("signingConfig.keyPassword")
     project.signingConfigStoreFilePath = properties.getProperty("signingConfig.storeFilePath")
     project.signingConfigStorePassword = properties.getProperty("signingConfig.storePassword")
-    //debug key
-    //极光推送
-    project.jpushAppKeyDebug = properties.getProperty("JPUSH_APPKEY_DEBUG")
-    //蒲公英
-    project.pgyAppIdDebug = properties.getProperty("PGY_APP_ID_DEBUG")
-    //百度
-    project.baiduAppIdDebug = properties.getProperty("BAIDU_APPID_DEBUG")
-    project.baiduSecretDebug = properties.getProperty("BAIDU_SECRET_DEBUG")
-    project.baiduAppKeyDebug = properties.getProperty("BAIDU_APPKEY_DEBUG")
+
     //release key
-    project.jpushAppKeyRelease = properties.getProperty("JPUSH_APPKEY_RELEASE")
-    project.pgyAppIdRelease = properties.getProperty("PGY_APP_ID_RELEASE")
-    project.baiduAppIdRelease = properties.getProperty("BAIDU_APPID_RELEASE")
-    project.baiduSecretRelease = properties.getProperty("BAIDU_SECRET_RELEASE")
-    project.baiduAppKeyRelease = properties.getProperty("BAIDU_APPKEY_RELEASE")
+    project.jpushAppKey = properties.getProperty("JPUSH_APPKEY")
+    project.pgyAppId = properties.getProperty("PGY_APP_ID")
+    project.baiduSpeechAppId = properties.getProperty("BAIDU_SPEECH_APPID")
+    project.baiduSpeechSecret = properties.getProperty("BAIDU_SPEECH_SECRET")
+    project.baiduSpeechAppKey = properties.getProperty("BAIDU_SPEECH_APPKEY")
+    project.baiduMapAppKey = properties.getProperty("BAIDU_MAP_APPKEY")
 
     project.jpushIMPassword = properties.getProperty("JM_IM_USER_PASSWORD")
 
-    //bugly
     project.buglyAppId = properties.getProperty("BUGLY_APPID")
 
 
@@ -63,7 +51,7 @@ loadProperties()
 
 task printVersionName {
     def v = project.property("o2.versionName").toString()
-    println( "${v}" )
+    println("${v}")
 }
 
 
@@ -104,43 +92,49 @@ android {
         multiDexEnabled true
         ndk {
             //选择要添加的对应cpu类型的.so库。
-            abiFilters 'armeabi', 'armeabi-v7a' //, 'arm64-v8a' //, 'x86', 'x86_64'
-            // 还可以添加 'x86', 'x86_64', 'mips', 'mips64'
+            abiFilters 'armeabi', 'armeabi-v7a'
         }
         multiDexKeepProguard file('multidex_keep_file.pro')
         vectorDrawables.useSupportLibrary = true
 
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
 
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
-            buildConfigField "Boolean", "InnerServer", "false"
+            buildConfigField "Boolean", "InnerServer", "true"
             buildConfigField "Boolean", "LOG_ENABLE", "true"
             buildConfigField "Boolean", "LOG_FILE", "true"
-            manifestPlaceholders = [JPUSH_PKGNAME: "net.zoneland.x.bpm.mobile.v1.zoneXBPM",
-                                    JPUSH_APPKEY : project.jpushAppKeyDebug,
-                                    JM_IM_USER_PASSWORD : project.jpushIMPassword,
-                                    PGY_APP_ID   : project.pgyAppIdDebug,
-                                    BAIDU_APPID  : project.baiduAppIdDebug,
-                                    BAIDU_SECRET : project.baiduSecretDebug,
-                                    BAIDU_APPKEY : project.baiduAppKeyDebug,
-                                    BUGLY_APPID  : project.buglyAppId]
+            manifestPlaceholders = [JPUSH_PKGNAME      : defaultConfig.applicationId,
+                                    JPUSH_APPKEY       : project.jpushAppKey,
+                                    JM_IM_USER_PASSWORD: project.jpushIMPassword,
+                                    PGY_APP_ID         : project.pgyAppId,
+                                    BAIDU_SPEECH_APPID : project.baiduSpeechAppId,
+                                    BAIDU_SPEECH_SECRET: project.baiduSpeechSecret,
+                                    BAIDU_SPEECH_APPKEY: project.baiduSpeechAppKey,
+                                    BAIDU_MAP_APPKEY   : project.baiduMapAppKey,
+                                    BUGLY_APPID        : project.buglyAppId]
         }
         release {
             signingConfig signingConfigs.release
             buildConfigField "Boolean", "InnerServer", "false"
             buildConfigField "Boolean", "LOG_ENABLE", "false"
             buildConfigField "Boolean", "LOG_FILE", "true"
-            manifestPlaceholders = [JPUSH_PKGNAME: "net.zoneland.x.bpm.mobile.v1.zoneXBPM",
-                                    JPUSH_APPKEY : project.jpushAppKeyRelease,
-                                    JM_IM_USER_PASSWORD : project.jpushIMPassword,
-                                    PGY_APP_ID   : project.pgyAppIdRelease,
-                                    BAIDU_APPID  : project.baiduAppIdRelease,
-                                    BAIDU_SECRET : project.baiduSecretRelease,
-                                    BAIDU_APPKEY : project.baiduAppKeyRelease,
-                                    BUGLY_APPID  : project.buglyAppId]
-            zipAlignEnabled true     //Zipalign优化
+            manifestPlaceholders = [JPUSH_PKGNAME      : defaultConfig.applicationId,
+                                    JPUSH_APPKEY       : project.jpushAppKey,
+                                    JM_IM_USER_PASSWORD: project.jpushIMPassword,
+                                    PGY_APP_ID         : project.pgyAppId,
+                                    BAIDU_SPEECH_APPID : project.baiduSpeechAppId,
+                                    BAIDU_SPEECH_SECRET: project.baiduSpeechSecret,
+                                    BAIDU_SPEECH_APPKEY: project.baiduSpeechAppKey,
+                                    BAIDU_MAP_APPKEY   : project.baiduMapAppKey,
+                                    BUGLY_APPID        : project.buglyAppId]
+            zipAlignEnabled true
             minifyEnabled true     //混淆
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
 
@@ -153,6 +147,7 @@ android {
 
         }
     }
+
     dataBinding {
         enabled true
     }
@@ -160,13 +155,13 @@ android {
         lintOptions {
             abortOnError false
         }
+
     }
 
     lintOptions {
         checkReleaseBuilds false
         abortOnError false
     }
-    //All flavors must now belong to a named flavor dimension. Learn more at https://d.android.com/r/tools/flavorDimensions-missing-error-message.html
     flavorDimensions "type"
     productFlavors {
         O2PLATFORM {
@@ -182,7 +177,6 @@ android {
 
 
 }
-
 
 
 buildscript {
@@ -203,23 +197,22 @@ repositories {
 }
 
 dependencies {
-
-    //    implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation files('libs/o2_auth_sdk.jar')
     implementation files('libs/BaiduLBS_Android.jar')
     implementation files('libs/bdasr_V3_20180320_9066860.jar')
     implementation files('libs/com.baidu.tts_2.3.1.20170808_e39ea89.jar')
     implementation files('libs/pgyer_sdk_2.2.2.jar')
     implementation files('libs/zxing.jar')
-    implementation files('libs/picasso-2.5.2.jar')
     implementation files('libs/pinyin4j-2.5.0.jar')
     implementation files('libs/universal-image-loader-1.9.5.jar')
-    implementation files('libs/tbs_sdk_thirdapp_v3.2.0.1104_43200.jar')
+    implementation files('libs/tbs_sdk_thirdapp_v4.3.0.1072_43646_sharewithdownloadwithfile_withoutGame_obfs_20190429_175122.jar')
     implementation(name: 'material-calendarview-fancy-1.1', ext: 'aar')
-    implementation(name: 'MGLicenseManagerSDK-0.3.1', ext: 'aar')
-    implementation(name: 'MGFaceppSDK-0.5.2', ext: 'aar')
+    implementation(name: 'o2_auth_sdk-release', ext: 'aar')
 
-    //kotlin
+    implementation(name: 'flutterpack-release', ext: 'aar')
+    implementation(name: 'shared_preferences-release', ext: 'aar')
+    implementation(name: 'image_picker-release', ext: 'aar')
+    implementation(name: 'path_provider-release', ext: 'aar')
+
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "org.jetbrains.anko:anko-common:$anko_version"
 
@@ -248,8 +241,8 @@ dependencies {
     implementation 'com.facebook.shimmer:shimmer:0.1.0@aar'
     implementation 'com.borax12.materialdaterangepicker:library:1.9'
     implementation 'com.yanzhenjie:recyclerview-swipe:1.1.4'
+    implementation 'com.race604.waveloading:library:1.1.1'
 
-    //http
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.2.0'
     implementation 'com.squareup.retrofit2:adapter-rxjava:2.0.2'
@@ -267,13 +260,10 @@ dependencies {
     // 此处以JMessage 2.5.0 版本为例。
     implementation 'cn.jiguang.sdk:jcore:1.1.9'
 
-    // 此处以JCore 1.1.9 版本为例。
-
     //im
     implementation 'com.michaelpardo:activeandroid:3.1.0-SNAPSHOT'
     implementation 'com.jakewharton:butterknife:8.4.0'
     kapt 'com.jakewharton:butterknife-compiler:8.4.0'
-    implementation 'com.github.w446108264:AndroidEmoji:1.0.0'
     implementation 'com.github.chrisbanes.photoview:library:1.2.4'
     implementation 'com.facebook.fresco:fresco:0.8.1'
     implementation 'org.greenrobot:eventbus:3.0.0'
@@ -281,6 +271,9 @@ dependencies {
 
     //滚动选择器
     implementation 'com.jzxiang.pickerview:TimePickerDialog:1.0.1'
+
+    //activity result
+    implementation 'com.github.lwugang:ActivityResult:59b23e3682'
 
     //google architecture component
     def lifecycle_version = "1.1.1"
@@ -296,7 +289,6 @@ dependencies {
     // alternatively - just LiveData
     implementation "android.arch.lifecycle:livedata:$lifecycle_version"
 
-    // alternatively - Lifecycles only (no ViewModel or LiveData).
 
     //     Support library depends on this lightweight import
     implementation "android.arch.lifecycle:runtime:$lifecycle_version"
@@ -305,8 +297,9 @@ dependencies {
     //noinspection GradleDependency
     kapt "com.android.databinding:compiler:$gradle_version"
 
-    //test
     testImplementation 'junit:junit:4.12'
+    implementation 'com.google.code.gson:gson:2.8.5'
+
 
 }
 
@@ -316,4 +309,3 @@ tasks.whenTaskAdded { task ->
         task.enabled = false
     }
 }
-

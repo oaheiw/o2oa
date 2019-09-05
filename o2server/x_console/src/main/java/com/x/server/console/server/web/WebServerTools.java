@@ -61,9 +61,8 @@ public class WebServerTools extends JettySeverTools {
 		context.setParentLoaderPriority(true);
 		context.setExtractWAR(false);
 		context.setDefaultsDescriptor(new File(Config.base(), "commons/webdefault_w.xml").getAbsolutePath());
-		// context.setInitParameter("org.eclipse.jetty.servlet.Default.useFileMappedBuffer",
-		// "false");
-		context.setWelcomeFiles(new String[] { "index.html" });
+		context.setInitParameter("org.eclipse.jetty.servlet.Default.dirAllowed", "false");
+		context.setWelcomeFiles(new String[] { "default.html", "index.html" });
 		context.setGzipHandler(new GzipHandler());
 		context.setParentLoaderPriority(true);
 		server.setHandler(context);

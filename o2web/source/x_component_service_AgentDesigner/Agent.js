@@ -141,6 +141,15 @@ MWF.xApplication.service.AgentDesigner.Agent = new Class({
                     break;
                 }
             }
+
+            var options = this.designer.fontsizeSelectNode.options;
+            for (var i=0; i<options.length; i++){
+                var option = options[i];
+                if (option.value==this.editor.fontSize){
+                    option.set("selected", true);
+                    break;
+                }
+            }
         }.bind(this));
 
         if (this.options.showTab) this.page.showTabIm();
@@ -170,6 +179,7 @@ MWF.xApplication.service.AgentDesigner.Agent = new Class({
 
         this.designer.propertyLastStartTimeNode.set("text", this.data.lastStartTime || "");
         this.designer.propertyLastEndTimeNode.set("text", this.data.lastEndTime || "");
+        this.designer.propertyAppointmentTimeNode.set("text", this.data.appointmentTime || "");
 
         this.designer.propertyDescriptionNode.set("value", this.data.description || "");
 

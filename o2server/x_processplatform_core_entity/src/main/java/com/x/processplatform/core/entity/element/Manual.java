@@ -68,6 +68,16 @@ public class Manual extends Activity {
 	/* flag标志位 */
 	/* Entity 默认字段结束 */
 
+	@FieldDescribe("分组")
+	@CheckPersist(allowEmpty = true)
+	@Column(length = JpaObject.length_255B, name = ColumnNamePrefix + group_FIELDNAME)
+	private String group;
+
+	@FieldDescribe("意见分组")
+	@CheckPersist(allowEmpty = true)
+	@Column(length = JpaObject.length_255B, name = ColumnNamePrefix + opinionGroup_FIELDNAME)
+	private String opinionGroup;
+
 	@FieldDescribe("节点名称.")
 	@Column(length = length_255B, name = ColumnNamePrefix + name_FIELDNAME)
 	@CheckPersist(allowEmpty = true, simplyString = true)
@@ -489,11 +499,11 @@ public class Manual extends Activity {
 	@Column(name = ColumnNamePrefix + allowAddSplit_FIELDNAME)
 	private Boolean allowAddSplit;
 
-	public static final String group_FIELDNAME = "group";
-	@FieldDescribe("分组")
+	public static final String allowPress_FIELDNAME = "allowPress";
+	@FieldDescribe("允许提醒.")
 	@CheckPersist(allowEmpty = true)
-	@Column(length = JpaObject.length_255B, name = ColumnNamePrefix + group_FIELDNAME)
-	private String group;
+	@Column(name = ColumnNamePrefix + allowPress_FIELDNAME)
+	private Boolean allowPress;
 
 	public static final String resetRange_FIELDNAME = "resetRange";
 	@FieldDescribe("重置范围.")
@@ -554,6 +564,21 @@ public class Manual extends Activity {
 	@Column(length = JpaObject.length_1M, name = ColumnNamePrefix + manualStayScriptText_FIELDNAME)
 	@CheckPersist(allowEmpty = true)
 	private String manualStayScriptText;
+
+//	public static final String manualPressScript_FIELDNAME = "manualPressScript";
+//	@IdReference(Script.class)
+//	@FieldDescribe("提醒内容脚本.")
+//	@Column(length = length_255B, name = ColumnNamePrefix + manualPressScript_FIELDNAME)
+//	@CheckPersist(allowEmpty = true)
+//	private String manualPressScript;
+//
+//	public static final String manualPressScriptText_FIELDNAME = "manualPressScriptText";
+//	@FieldDescribe("提醒内容脚本文本.")
+//	@Lob
+//	@Basic(fetch = FetchType.EAGER)
+//	@Column(length = JpaObject.length_1M, name = ColumnNamePrefix + manualPressScriptText_FIELDNAME)
+//	@CheckPersist(allowEmpty = true)
+//	private String manualPressScriptText;
 
 	public String getName() {
 		return name;
@@ -1110,5 +1135,37 @@ public class Manual extends Activity {
 	public void setAllowAddSplit(Boolean allowAddSplit) {
 		this.allowAddSplit = allowAddSplit;
 	}
+
+	public Boolean getAllowPress() {
+		return allowPress;
+	}
+
+	public void setAllowPress(Boolean allowPress) {
+		this.allowPress = allowPress;
+	}
+
+	public String getOpinionGroup() {
+		return opinionGroup;
+	}
+
+	public void setOpinionGroup(String opinionGroup) {
+		this.opinionGroup = opinionGroup;
+	}
+
+//	public String getManualPressScript() {
+//		return manualPressScript;
+//	}
+//
+//	public void setManualPressScript(String manualPressScript) {
+//		this.manualPressScript = manualPressScript;
+//	}
+//
+//	public String getManualPressScriptText() {
+//		return manualPressScriptText;
+//	}
+//
+//	public void setManualPressScriptText(String manualPressScriptText) {
+//		this.manualPressScriptText = manualPressScriptText;
+//	}
 
 }

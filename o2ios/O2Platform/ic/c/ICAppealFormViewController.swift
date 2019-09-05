@@ -232,7 +232,7 @@ class ICAppealFormViewController: FormViewController {
         ButtonRow.defaultCellUpdate = {
             cell,row in
             cell.textLabel?.font = setting_item_textFont
-            cell.textLabel?.textColor = RGB(251, g: 71, b: 71)
+            cell.textLabel?.theme_textColor = ThemeColorPicker(keyPath: "Base.base_color")
             
         }
         
@@ -246,7 +246,7 @@ class ICAppealFormViewController: FormViewController {
             cell,row in
             cell.textLabel?.font = setting_content_textFont
             cell.textLabel?.textColor =  setting_content_textColor
-            cell.segmentedControl.backgroundColor = RGB(251, g: 71, b: 71)
+            cell.segmentedControl.theme_backgroundColor = ThemeColorPicker(keyPath: "Base.base_color")
             cell.segmentedControl.tintColor = UIColor.white
         }
     }
@@ -270,12 +270,12 @@ class ICAppealFormViewController: FormViewController {
                     self.entry?.processPerson1 = name.array![0].stringValue
                 }else{
                     DDLogError(JSON(val).description)
-                    ProgressHUD.showError("初始化主管审批人错误")
+                    self.showError(title: "初始化主管审批人错误")
 
                 }
             case .failure(let err):
                 DDLogError(err.localizedDescription)
-                ProgressHUD.showError("初始化主管审批人错误")
+                self.showError(title: "初始化主管审批人错误")
             }
         }
     }
@@ -342,19 +342,19 @@ class ICAppealFormViewController: FormViewController {
                 case .success(let val):
                     let type = JSON(val)["type"]
                     if type == "success" {
-                        ProgressHUD.showSuccess("提交成功")
+                        self.showSuccess(title: "提交成功")
                         self.backDetail()
                     }else{
                         DDLogError(JSON(val).description)
-                        ProgressHUD.showError("申诉提交错误")
+                        self.showError(title: "申诉提交错误")
                     }
                 case .failure(let err):
                     DDLogError(err.localizedDescription)
-                    ProgressHUD.showError("申诉提交错误")
+                    self.showError(title: "申诉提交错误")
                 }
             }
         }else{
-            ProgressHUD.showError("请设置相应的参数")
+            self.showError(title: "请设置相应的参数")
         }
         
     }

@@ -3,6 +3,7 @@ package com.x.organization.core.entity;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 import javax.persistence.Basic;
 import javax.persistence.Column;
@@ -22,6 +23,7 @@ import javax.persistence.UniqueConstraint;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.openjpa.persistence.PersistentCollection;
 import org.apache.openjpa.persistence.jdbc.ContainerTable;
 import org.apache.openjpa.persistence.jdbc.ElementColumn;
@@ -103,6 +105,8 @@ public class Person extends SliceJpaObject {
 		if (null == this.orderNumber) {
 			this.orderNumber = DateTools.timeOrderNumber();
 		}
+		// this.signature =
+		// StringEscapeUtils.escapeHtml4(Objects.toString(this.signature, ""));
 	}
 
 	/* 更新运行方法 */
@@ -192,7 +196,7 @@ public class Person extends SliceJpaObject {
 	public static final String controllerList_FIELDNAME = "controllerList";
 	@FieldDescribe("个人管理者.默认为创建者。")
 	@PersistentCollection(fetch = FetchType.EAGER)
-	@OrderColumn(name =  ORDERCOLUMNCOLUMN)
+	@OrderColumn(name = ORDERCOLUMNCOLUMN)
 	@ContainerTable(name = TABLE + ContainerTableNameMiddle + controllerList_FIELDNAME, joinIndex = @Index(name = TABLE
 			+ IndexNameMiddle + controllerList_FIELDNAME + JoinIndexNameSuffix))
 	@ElementColumn(length = JpaObject.length_id, name = ColumnNamePrefix + controllerList_FIELDNAME)
@@ -389,7 +393,23 @@ public class Person extends SliceJpaObject {
 	@CheckPersist(allowEmpty = true)
 	private String open5Id;
 
+	public static final String failureTime_FIELDNAME = "failureTime";
+	@FieldDescribe("登录失败记录时间.")
+	@Temporal(TemporalType.TIMESTAMP)
+	@CheckPersist(allowEmpty = true)
+	@Column(name = ColumnNamePrefix + failureTime_FIELDNAME)
+	private Date failureTime;
+
+	public static final String failureCount_FIELDNAME = "failureCount";
+	@FieldDescribe("登录失败次数")
+	@Column(name = ColumnNamePrefix + failureCount_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private Integer failureCount;
 	/* flag标志位 */
+
+	public void setLastLoginAddress(String lastLoginAddress) {
+		this.lastLoginAddress = StringTools.utf8SubString(this.lastLoginAddress, Person.length_64B);
+	}
 
 	public String getName() {
 		return name;
@@ -563,10 +583,6 @@ public class Person extends SliceJpaObject {
 		return lastLoginAddress;
 	}
 
-	public void setLastLoginAddress(String lastLoginAddress) {
-		this.lastLoginAddress = lastLoginAddress;
-	}
-
 	public String getLastLoginClient() {
 		return lastLoginClient;
 	}
@@ -693,6 +709,22 @@ public class Person extends SliceJpaObject {
 
 	public void setOpen5Id(String open5Id) {
 		this.open5Id = open5Id;
+	}
+
+	public Date getFailureTime() {
+		return failureTime;
+	}
+
+	public void setFailureTime(Date failureTime) {
+		this.failureTime = failureTime;
+	}
+
+	public Integer getFailureCount() {
+		return failureCount;
+	}
+
+	public void setFailureCount(Integer failureCount) {
+		this.failureCount = failureCount;
 	}
 
 }

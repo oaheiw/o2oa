@@ -26,10 +26,6 @@
 		</dependency>
 		<dependency>
 			<groupId>o2oa</groupId>
-			<artifactId>x_collaboration_core_message</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>o2oa</groupId>
 			<artifactId>x_cms_core_entity</artifactId>
 		</dependency>
 		<dependency>
@@ -62,6 +58,10 @@
 					<execution>
 						<id>copy-war</id>
 						<phase>verify</phase>
+					</execution>
+					<execution>
+						<id>checkAssemble</id>
+						<phase>prepare-package</phase>
 					</execution>
 				</executions>
 			</plugin>

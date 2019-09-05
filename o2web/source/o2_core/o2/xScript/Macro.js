@@ -14,7 +14,18 @@ MWF.xScript.Macro = MWF.Macro = {
             //try {
                 var f = eval("(function(){return function(){\n"+code+"\n}})();");
                 returnValue = f.apply(bind);
-            //}catch(e){};
+            // }catch(e){
+            //     console.log(o2.LP.script.error);
+            //     if (code.length>500){
+            //         var t = code.substr(0,500)+"\n...\n";
+            //         console.log(t);
+            //     }else{
+            //         console.log(code);
+            //     }
+            //
+            //     console.log(e);
+            //     throw e;
+            // }
         //}catch(e){}//
 
 

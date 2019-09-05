@@ -13,6 +13,8 @@ import com.x.base.core.project.annotation.FieldDescribe;
 import com.x.base.core.project.config.Config;
 import com.x.base.core.project.gson.GsonPropertyObject;
 import com.x.base.core.project.http.ActionResult;
+import com.x.base.core.project.http.EffectivePerson;
+import com.x.base.core.project.logger.Audit;
 import com.x.base.core.project.logger.Logger;
 import com.x.base.core.project.logger.LoggerFactory;
 import com.x.base.core.project.tools.Crypto;
@@ -23,9 +25,10 @@ class ActionCaptchaLogin extends BaseAction {
 
 	private static Logger logger = LoggerFactory.getLogger(ActionCaptchaLogin.class);
 
-	ActionResult<Wo> execute(HttpServletRequest request, HttpServletResponse response, JsonElement jsonElement)
-			throws Exception {
+	ActionResult<Wo> execute(HttpServletRequest request, HttpServletResponse response, EffectivePerson effectivePerson,
+			JsonElement jsonElement) throws Exception {
 		try (EntityManagerContainer emc = EntityManagerContainerFactory.instance().create()) {
+			Audit audit = logger.audit(effectivePerson);
 			ActionResult<Wo> result = new ActionResult<>();
 			Business business = new Business(emc);
 			Wo wo = null;
@@ -51,23 +54,33 @@ class ActionCaptchaLogin extends BaseAction {
 			}
 			if (Config.token().isInitialManager(credential)) {
 				if (!StringUtils.equals(Config.token().getPassword(), password)) {
-					throw new ExceptionInvalidPassword();
+					throw new ExceptionPersonNotExistOrInvalidPassword();
 				}
 				wo = this.manager(request, response, business, Wo.class);
 			} else {
 				/* 普通用户登录,也有可能拥有管理员角色 */
 				String personId = business.person().getWithCredential(credential);
 				if (StringUtils.isEmpty(personId)) {
-					throw new ExceptionPersonNotExist(credential);
+					throw new ExceptionPersonNotExistOrInvalidPassword();
 				}
 				Person o = emc.find(personId, Person.class);
 				if (BooleanUtils.isTrue(Config.person().getSuperPermission())
 						&& StringUtils.equals(Config.token().getPassword(), password)) {
 					logger.warn("user: {} use superPermission.", credential);
-				} else if (!StringUtils.equals(Crypto.encrypt(password, Config.token().getKey()), o.getPassword())) {
-					throw new ExceptionInvalidPassword();
+				} else {
+					if (this.failureLocked(o)) {
+						throw new ExceptionFailureLocked(o.getName(), Config.person().getFailureInterval());
+					} else {
+						if (!StringUtils.equals(Crypto.encrypt(password, Config.token().getKey()), o.getPassword())) {
+							emc.beginTransaction(Person.class);
+							this.failure(o);
+							emc.commit();
+							throw new ExceptionPersonNotExistOrInvalidPassword();
+						}
+					}
 				}
 				wo = this.user(request, response, business, o, Wo.class);
+				audit.log(o.getDistinguishedName());
 			}
 			result.setData(wo);
 			return result;

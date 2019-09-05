@@ -7,7 +7,9 @@ MWF.xApplication.process.Work.Processor = new Class({
 	options: {
 		"style": "default",
         "mediaNode": null,
-        "opinion": ""
+        "opinion": "",
+        "tabletWidth" : 0,
+        "tabletHeight" : 0
 	},
 	
 	initialize: function(node, task, options){
@@ -66,10 +68,10 @@ MWF.xApplication.process.Work.Processor = new Class({
     outRoute: function(node){
         if (this.selectedRoute){
             if (this.selectedRoute.get("text") != node.get("text")){
-                node.setStyle("background-color", "#E3E3E3");
+                node.setStyles(this.css.routeNode);
             }
         }else{
-            node.setStyle("background-color", "#E3E3E3");
+            node.setStyles(this.css.routeNode);
         }
     },
     selectRoute: function(node){
@@ -120,11 +122,15 @@ MWF.xApplication.process.Work.Processor = new Class({
             this.handwriting();
         }.bind(this));
 
-        if (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia){
-            this.audioRecordAction = new Element("div", {"styles": this.css.inputOpinionAudioRecordAction, "text": MWF.xApplication.process.Work.LP.audioRecord}).inject(this.mediaActionArea);
-            this.audioRecordAction.addEvent("click", function(){
-                this.audioRecord();
-            }.bind(this));
+        // if (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia){
+        //     this.audioRecordAction = new Element("div", {"styles": this.css.inputOpinionAudioRecordAction, "text": MWF.xApplication.process.Work.LP.audioRecord}).inject(this.mediaActionArea);
+        //     this.audioRecordAction.addEvent("click", function(){
+        //         this.audioRecord();
+        //     }.bind(this));
+        // }
+
+        if (layout.mobile){
+            this.selectIdeaNode.inject(this.routeOpinionArea, "after");
         }
 
         MWF.require("MWF.widget.ScrollBar", function(){
@@ -134,6 +140,7 @@ MWF.xApplication.process.Work.Processor = new Class({
         }.bind(this));
 
         MWF.require("MWF.widget.UUID", function(){
+            debugger;
             MWF.UD.getDataJson("idea", function(json){
                 if (json){
                     if (json.ideas){
@@ -198,9 +205,16 @@ MWF.xApplication.process.Work.Processor = new Class({
     createHandwriting: function(){
         this.handwritingNode = new Element("div", {"styles": this.css.handwritingNode}).inject(this.node, "after");
         var size = (this.options.mediaNode || this.node).getSize();
-        var y = Math.max(size.y, 320);
-        var x = Math.max(size.x, 480);
+        var y = size.y;
+        var x = size.x;
+        if (!layout.mobile){
 
+            x = Math.max( this.options.tabletWidth || x , 500);
+            y = Math.max(this.options.tabletHeight ? (parseInt(this.options.tabletHeight) + 110) : y, 320);
+
+            //y = Math.max(size.y, 320);
+            //x = Math.max(size.x, 480);
+        }
         // for (k in this.node.style){
         //     if (this.node.style[k]) this.handwritingNode.style[k] = this.node.style[k];
         // }
@@ -210,6 +224,12 @@ MWF.xApplication.process.Work.Processor = new Class({
             "width": ""+x+"px",
             "z-index": zidx+1
         });
+        if( layout.mobile ){
+            debugger;
+            this.handwritingNode.addEvent('touchmove' , function(e){
+                e.preventDefault();
+            })
+        }
         this.handwritingNode.position({
             "relativeTo": this.options.mediaNode || this.node,
             "position": "center",
@@ -224,6 +244,8 @@ MWF.xApplication.process.Work.Processor = new Class({
         MWF.require("MWF.widget.Tablet", function () {
             this.tablet = new MWF.widget.Tablet(this.handwritingAreaNode, {
                 "style": "default",
+                "contentWidth" : this.options.tabletWidth || 0,
+                "contentHeight" : this.options.tabletHeight || 0,
                 "onSave" : function( base64code, base64Image, imageFile ){
                     this.handwritingFile = imageFile;
                     this.handwritingNode.hide();
@@ -250,6 +272,13 @@ MWF.xApplication.process.Work.Processor = new Class({
                 "styles": this.css.selectIdeaItemNode,
                 "text": idea,
                 "events": {
+                    "click": function(){
+                        if (_self.inputTextarea.get("value")==MWF.xApplication.process.Work.LP.inputText){
+                            _self.inputTextarea.set("value", this.get("text"));
+                        }else{
+                            _self.inputTextarea.set("value", _self.inputTextarea.get("value")+", "+this.get("text"));
+                        }
+                    },
                     "dblclick": function(){
                         if (_self.inputTextarea.get("value")==MWF.xApplication.process.Work.LP.inputText){
                             _self.inputTextarea.set("value", this.get("text"));

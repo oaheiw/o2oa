@@ -49,6 +49,7 @@ struct FileContext {
     static let fileDownloadPicItemIdQuery = "jaxrs/file/##id##/download/stream"
     static let fileUploadTopQuery = "jaxrs/attachment/upload/folder/(0)"
     static let fileUploadSubQuery = "jaxrs/attachment/upload/folder/##id##"
+    static let fileUploadReference = "jaxrs/file/upload/referencetype/##referencetype##/reference/##reference##/scale/##scale##"
     static let fileEditorQuery = "jaxrs/editor/list"
     static let fileShareQuery = "jaxrs/share/list"
     static let fileDeleteQuery = "jaxrs/attachment/##id##"
@@ -76,6 +77,7 @@ struct PersonContext {
 struct ContactContext {
     static let contactsContextKey = "x_organization_assemble_express"
     static let contactsContextKeyV2 = "x_organization_assemble_control"
+    static let topLevelUnitByIdentity = "jaxrs/unit/identity/level/object" // x_organization_assemble_express 上下文下的
     static let personInfoByNameQuery = "jaxrs/person/##name##"
     static let personIconByNameQuery = "servlet/icon/##name##" //获取图像
     static let personIconByNameQueryV2 = "jaxrs/person/##name##/icon"
@@ -134,7 +136,7 @@ struct TaskContext {
     static let todoTaskListFilterQuery = "jaxrs/task/list/##id##/next/##count##/filter"
     static let todoTaskSubmitQuery = "jaxrs/task/##id##"
     static let todoTaskGetAttachmentInfoQuery = "jaxrs/attachment/##attachmentId##/work/##workId##"
-    static let todoTaskGetAttachmentQuery = "jaxrs/attachment/download/##attachmentId##/work/##workId##/stream/true"
+    static let todoTaskGetAttachmentQuery = "jaxrs/attachment/download/##attachmentId##/work/##workId##"
     static let todoTaskUpReplaceAttachmentQuery = "jaxrs/attachment/update/##attachmentId##/work/##workId##"
     static let todoTaskUploadAttachmentQuery = "jaxrs/attachment/upload/work/##workId##"
     static let todoCreateAvaiableIdentityByIdQuery = "jaxrs/process/list/available/identity/process/##processId##"
@@ -155,7 +157,7 @@ struct TaskedContext {
     static let taskedDataByIdQuery = "jaxrs/taskcompleted/##id##/reference"
     static let taskedRetractQuery = "jaxrs/work/##work##/retract"
     static let taskedGetAttachmentInfoQuery = "jaxrs/attachment/##attachmentId##/work/##workcompletedId##"
-    static let taskedGetAttachmentQuery = "/jaxrs/attachment/download/##attachmentId##/workcompleted/##workcompletedId##/stream/true"
+    static let taskedGetAttachmentQuery = "/jaxrs/attachment/download/##attachmentId##/workcompleted/##workcompletedId##"
 }
 
 
@@ -228,10 +230,17 @@ struct icContext {
 struct CMSContext {
     static let cmsContextKey = "x_cms_assemble_control"
     static let cmsCategoryQuery  = "jaxrs/appinfo/list/user/view"
+    static let cmsCanPublishCategoryQuery  = "jaxrs/appinfo/get/user/publish/##appId##" //GET 查询app下当前用户能发布的category，返回的是app对象
     static let cmsCategoryListQuery = "jaxrs/categoryinfo/list/publish/app/##appId##"
-    static let cmsAttachmentDownloadQuery = "servlet/download/##id##/stream"
     static let cmsCategoryDetailQuery = "jaxrs/document/filter/list/##id##/next/##count##"
+    static let cmsDocumentDraftQuery = "jaxrs/document/draft/list/##id##/next/##count##" //PUT 查询草稿 {"categoryIdList":["36783507-3109-4701-a1bd-487e12340af5"],"creatorList":["楼国栋@louguodong@P"],"documentType":"全部"}
+    static let cmsDocumentPost = "jaxrs/document" //保存修改文档 POST
     static let cmsAttachmentListQuery = "jaxrs/fileinfo/list/document/##documentId##"
+    static let cmsAttachmentGET = "jaxrs/fileinfo/##attachId##/document/##documentId##" //附件对象获取
+    static let cmsAttachmentDownloadQuery = "servlet/download/##id##/stream"
+    static let cmsAttachmentDownloadNewQuery = "jaxrs/fileinfo/download/document/##attachId##" //下载附件 GET
+    static let cmsAttachmentUpload = "jaxrs/fileinfo/upload/document/##docId##" //上传附件POST
+    static let cmsAttachmentReplace = "jaxrs/fileinfo/update/document/##docId##/attachment/##attachId##" //替换附件 POST
 }
 
 

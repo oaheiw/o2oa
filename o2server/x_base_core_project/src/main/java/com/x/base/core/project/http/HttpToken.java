@@ -14,10 +14,16 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 
+import com.x.base.core.project.config.Config;
+import com.x.base.core.project.logger.Logger;
+import com.x.base.core.project.logger.LoggerFactory;
 import com.x.base.core.project.tools.Crypto;
 import com.x.base.core.project.tools.DateTools;
+import com.x.base.core.project.tools.DomainTools;
 
 public class HttpToken {
+
+	private static Logger logger = LoggerFactory.getLogger(HttpToken.class);
 
 	public static final String X_Token = "x-token";
 	public static final String X_Authorization = "authorization";
@@ -30,7 +36,10 @@ public class HttpToken {
 
 	public EffectivePerson who(HttpServletRequest request, HttpServletResponse response, String key) throws Exception {
 		EffectivePerson effectivePerson = this.who(this.getToken(request), key);
-		/** 加入调试标记 */
+		effectivePerson.setRemoteAddress(this.remoteAddress(request));
+		effectivePerson.setUserAgent(this.userAgent(request));
+		effectivePerson.setUri(request.getRequestURI());
+		/* 加入调试标记 */
 		Object debugger = request.getHeader(HttpToken.X_Debugger);
 		if (null != debugger && BooleanUtils.toBoolean(Objects.toString(debugger))) {
 			effectivePerson.setDebugger(true);
@@ -52,14 +61,14 @@ public class HttpToken {
 			try {
 				plain = Crypto.decrypt(token, key);
 			} catch (Exception e) {
-				System.out.println("can not decrypt token:" + token + ". " + e.getMessage());
+				logger.warn("can not decrypt token:{}, {}.", token, e.getMessage());
 				return EffectivePerson.anonymous();
 			}
 			Pattern pattern = Pattern.compile(RegularExpression_Token, Pattern.CASE_INSENSITIVE);
 			Matcher matcher = pattern.matcher(plain);
 			if (!matcher.find()) {
 				/* 不报错,跳过错误,将用户设置为anonymous */
-				System.out.println("token format error:" + plain + ".");
+				logger.warn("token format error:{}.", plain);
 				return EffectivePerson.anonymous();
 			}
 			Date date = DateUtils.parseDate(matcher.group(2), DateTools.formatCompact_yyyyMMddHHmmss);
@@ -67,17 +76,16 @@ public class HttpToken {
 			long diff = (new Date().getTime() - date.getTime());
 			diff = Math.abs(diff);
 			if (TokenType.user.equals(tokenType) || TokenType.manager.equals(tokenType)) {
-				if (diff > (60000L * 60 * 24 * 15)) {
+				if (diff > (60000L * Config.person().getTokenExpiredMinutes())) {
 					// throw new Exception("token expired." + token);
 					/* 不报错,跳过错误,将用户设置为anonymous */
-					System.out.println("token expired." + plain);
+					logger.warn("token expired:{}.", plain);
 					return EffectivePerson.anonymous();
 				}
 			}
 			if (TokenType.cipher.equals(tokenType)) {
 				if (diff > (60000 * 20)) {
 					/* 不报错,跳过错误,将用户设置为anonymous */
-					System.out.println("cipher token expired." + plain);
 					return EffectivePerson.anonymous();
 				}
 			}
@@ -156,7 +164,11 @@ public class HttpToken {
 			Pattern pattern = Pattern.compile(RegularExpression_IP);
 			Matcher matcher = pattern.matcher(str);
 			if (!matcher.find()) {
-				return "." + StringUtils.substringAfter(str, ".");
+				if (StringUtils.equalsIgnoreCase(DomainTools.getMainDomain(str), str)) {
+					return str;
+				} else {
+					return "." + StringUtils.substringAfter(str, ".");
+				}
 			}
 		}
 		return str;
@@ -165,4 +177,17 @@ public class HttpToken {
 	private void setAttribute(HttpServletRequest request, EffectivePerson effectivePerson) {
 		request.setAttribute(X_Person, effectivePerson);
 	}
+
+	private String remoteAddress(HttpServletRequest request) {
+		String value = Objects.toString(request.getHeader("X-Forwarded-For"), "");
+		if (StringUtils.isEmpty(value)) {
+			value = Objects.toString(request.getRemoteAddr(), "");
+		}
+		return value;
+	}
+
+	private String userAgent(HttpServletRequest request) {
+		return Objects.toString(request.getHeader("User-Agent"), "");
+	}
+
 }

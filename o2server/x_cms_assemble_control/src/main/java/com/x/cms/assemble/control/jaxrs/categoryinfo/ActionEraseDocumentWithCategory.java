@@ -4,6 +4,8 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.x.base.core.container.EntityManagerContainer;
 import com.x.base.core.container.factory.EntityManagerContainerFactory;
 import com.x.base.core.entity.annotation.CheckRemoveType;
@@ -32,7 +34,7 @@ public class ActionEraseDocumentWithCategory extends BaseAction {
 		CategoryInfo categoryInfo = null;
 		Boolean check = true;
 		
-		if ( id == null || id.isEmpty() ) {
+		if ( StringUtils.isEmpty(id) ) {
 			check = false;
 			Exception exception = new ExceptionIdEmpty();
 			result.error(exception);
@@ -60,7 +62,7 @@ public class ActionEraseDocumentWithCategory extends BaseAction {
 			Document document = null;
 			List<String> idsForDelete = null;
 			List<String> allFileInfoIds = null;			
-			Integer queryMaxCount = 5000;
+			Integer queryMaxCount = 100;
 			Integer whileCount = 0;
 			Integer currentWhileCount = 0;
 			FileInfo fileInfo = null;
@@ -76,7 +78,7 @@ public class ActionEraseDocumentWithCategory extends BaseAction {
 					
 					//循环清除分类下所有的文档信息
 					while( count > 0 && currentWhileCount<=whileCount ) {
-						logger.info(">>>>正在根据categoryId查询"+count+"个需要删除的文档ID列表。");
+						logger.info(">>>>正在根据categoryId查询"+queryMaxCount+"个需要删除的文档ID列表。");
 						idsForDelete = documentServiceAdv.listIdsByCategoryId( id, queryMaxCount );
 						if( ListTools.isNotEmpty(  idsForDelete )) {
 							

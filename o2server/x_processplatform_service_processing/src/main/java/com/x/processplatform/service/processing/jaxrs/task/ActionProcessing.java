@@ -88,6 +88,7 @@ class ActionProcessing extends BaseAction {
 			Date now = new Date();
 			Long duration = Config.workTime().betweenMinutes(task.getStartTime(), now);
 			TaskCompleted taskCompleted = new TaskCompleted(task, wi.getProcessingType(), now, duration);
+			taskCompleted.onPersist();
 			emc.persist(taskCompleted, CheckPersistType.all);
 			emc.remove(task, CheckRemoveType.all);
 			emc.commit();
@@ -110,8 +111,9 @@ class ActionProcessing extends BaseAction {
 					}
 				}
 			}
-			MessageFactory.taskCompleted_create(taskCompleted);
-			MessageFactory.task_delete(task);
+			MessageFactory.task_to_taskCompleted(taskCompleted);
+//			MessageFactory.taskCompleted_create(taskCompleted);
+//			MessageFactory.task_delete(task);
 			if (BooleanUtils.isNotFalse(wi.getFinallyProcessingWork())) {
 				ProcessingAttributes processingAttributes = new ProcessingAttributes();
 				processingAttributes.setDebugger(effectivePerson.getDebugger());

@@ -9,12 +9,16 @@
 import UIKit
 import CYLTabBarController
 import CocoaLumberjack
+import O2OA_Auth_SDK
 
 class OOTabBarController: CYLTabBarController,UITabBarControllerDelegate {
     
     static var tabBarVC:OOTabBarController!
     
     private var currentIndex:Int = 0
+    
+    // demo服务器弹出公告
+    private var demoAlertView = O2DemoAlertView()
     
     private let viewModel:OOLoginViewModel = {
         return OOLoginViewModel()
@@ -26,6 +30,22 @@ class OOTabBarController: CYLTabBarController,UITabBarControllerDelegate {
         selectedIndex = 2
         currentIndex = 2
         _init()
+        
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        // 判断是否 第一次安装 是否是连接的demo服务器
+        if let unit = O2AuthSDK.shared.bindUnit() {
+            if "demo.o2oa.net" == unit.centerHost || "demo.o2oa.io" == unit.centerHost || "demo.o2server.io" == unit.centerHost {
+                let tag = AppConfigSettings.shared.demoAlertTag
+//                DDLogDebug("tag is here \(tag)")
+                if !tag {
+//                    DDLogDebug("show alert demo.......................")
+                    demoAlertView.showFallDown()
+                    AppConfigSettings.shared.demoAlertTag = true
+                }
+            }
+        }
     }
     
     private func _init() {
@@ -58,14 +78,14 @@ class OOTabBarController: CYLTabBarController,UITabBarControllerDelegate {
         return myVC
     }
     
-    static func genernateVC() -> OOTabBarController  {
-        guard let myVC = tabBarVC else {
-            tabBarVC = OOTabBarController(viewControllers: OOTabBarHelper.viewControllers(), tabBarItemsAttributes: OOTabBarHelper.tabBarItemsAttributesForController())
-            return tabBarVC
-        }
-        
-        return myVC
-    }
+//    static func genernateVC() -> OOTabBarController  {
+//        guard let myVC = tabBarVC else {
+//            tabBarVC = OOTabBarController(viewControllers: OOTabBarHelper.viewControllers(), tabBarItemsAttributes: OOTabBarHelper.tabBarItemsAttributesForController())
+//            return tabBarVC
+//        }
+//        
+//        return myVC
+//    }
     
     func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
         self.cyl_tabBarController.updateSelectionStatusIfNeeded(for: tabBarController, shouldSelect: viewController)

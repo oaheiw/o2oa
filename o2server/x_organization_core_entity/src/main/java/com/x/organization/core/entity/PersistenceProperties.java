@@ -74,4 +74,15 @@ public final class PersistenceProperties extends AbstractPersistenceProperties {
 	public static class OauthCode {
 		public static final String table = "ORG_OAUTHCODE";
 	}
+
+	public static class Accredit {
+
+		public static class Empower {
+			public static final String table = "ORG_A_EMPOWER";
+		}
+
+		public static class EmpowerLog {
+			public static final String table = "ORG_A_EMPOWERLOG";
+		}
+	}
 }

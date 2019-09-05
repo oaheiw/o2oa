@@ -54,6 +54,7 @@ MWF.xApplication.Selector.Person = new Class({
         });
         this.node = new Element("div", {"styles": this.css.containerNodeMobile});
         this.node.setStyle("z-index", this.options.zIndex.toInt()+1);
+        this.node.setStyle("height", ( document.body.getSize().y ) + "px");
         this.titleNode = new Element("div", {
             "styles": this.css.titleNodeMobile
         }).inject(this.node);
@@ -75,14 +76,16 @@ MWF.xApplication.Selector.Person = new Class({
         this.contentNode = new Element("div", {
             "styles": this.css.contentNode
         }).inject(this.node);
-        var size = this.container.getSize();
+        debugger;
+        var size = document.body.getSize();
         var height = size.y-40;
+        //var height = size.y;
         this.contentNode.setStyle("height", ""+height+"px");
 
 
         this.loadContent();
 
-        this.node.inject(this.container);
+        this.node.inject(document.body);
         this.node.setStyles({
             "top": "0px",
             "left": "0px"
@@ -92,6 +95,7 @@ MWF.xApplication.Selector.Person = new Class({
     },
     setMaskResize: function(){
         var size = this.container.getSize();
+        this.mask.resize();
         this.maskInterval = window.setInterval(function(){
             var resize = this.container.getSize();
             if ((size.x!==resize.x) || (size.y!==resize.y)){
@@ -103,9 +107,10 @@ MWF.xApplication.Selector.Person = new Class({
         }.bind(this), 66);
     },
     loadPc: function(){
+        debugger;
         this.css.maskNode["z-index"] = this.options.zIndex;
         var position = this.container.getPosition(this.container.getOffsetParent());
-        this.mask= new Mask(this.container, {
+        this.mask = new Mask(this.container, {
             "destroyOnHide": true,
             "style": this.css.maskNode,
             "useIframeShim": true,
@@ -117,6 +122,18 @@ MWF.xApplication.Selector.Person = new Class({
                     "left": ""+position.x+"px"
                 });
             }
+            //
+            // "destroyOnHide": true,
+            // "style": this.css.maskNode,
+            // "useIframeShim": true,
+            // "iframeShimOptions": {"browsers": true},
+            // "onShow": function(){
+            //     this.shim.shim.setStyles({
+            //         "opacity": 0,
+            //         "top": ""+position.y+"px",
+            //         "left": ""+position.x+"px"
+            //     });
+            // }
         });
         this.mask.show();
         this.setMaskResize();
@@ -989,7 +1006,9 @@ MWF.xApplication.Selector.Person.Item = new Class({
         this.actionNode.setStyles(this.selector.css.selectorItemActionNode);
     },
     selected: function(){
-        if ((this.selector.options.count.toInt()===0) || (this.selector.selectedItems.length+1)<=this.selector.options.count){
+        var count = this.selector.options.maxCount || this.selector.options.count;
+        if (!count) count = 0;
+        if ((count.toInt()===0) || (this.selector.selectedItems.length+1)<=count){
             this.isSelected = true;
             this.node.setStyles(this.selector.css.selectorItem_selected);
             this.textNode.setStyles(this.selector.css.selectorItemTextNode_selected);
@@ -999,7 +1018,7 @@ MWF.xApplication.Selector.Person.Item = new Class({
             this.selectedItem.check();
             this.selector.selectedItems.push(this.selectedItem);
         }else{
-            MWF.xDesktop.notice("error", {x: "right", y:"top"}, "最多可选择"+this.selector.options.count+"个选项", this.selector.node);
+            MWF.xDesktop.notice("error", {x: "right", y:"top"}, "最多可选择"+count+"个选项", this.node);
         }
     },
     unSelected: function(){

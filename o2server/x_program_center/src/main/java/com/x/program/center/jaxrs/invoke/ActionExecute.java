@@ -1,6 +1,7 @@
 package com.x.program.center.jaxrs.invoke;
 
 import java.util.Date;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,9 +18,12 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.gson.JsonElement;
 import com.x.base.core.container.EntityManagerContainer;
 import com.x.base.core.container.factory.EntityManagerContainerFactory;
-import com.x.base.core.project.exception.ExceptionWhen;
+import com.x.base.core.entity.annotation.CheckPersistType;
+import com.x.base.core.project.config.Config;
 import com.x.base.core.project.http.ActionResult;
 import com.x.base.core.project.http.EffectivePerson;
+import com.x.base.core.project.jaxrs.WoSeeOther;
+import com.x.base.core.project.jaxrs.WoTemporaryRedirect;
 import com.x.base.core.project.jaxrs.WoValue;
 import com.x.organization.core.express.Organization;
 import com.x.program.center.Context;
@@ -29,11 +33,11 @@ import com.x.program.center.core.entity.Invoke;
 
 class ActionExecute extends BaseAction {
 
-	ActionResult<Wo> execute(HttpServletRequest request, EffectivePerson effectivePerson, String flag,
+	ActionResult<Object> execute(HttpServletRequest request, EffectivePerson effectivePerson, String flag,
 			JsonElement jsonElement) throws Exception {
 		try (EntityManagerContainer emc = EntityManagerContainerFactory.instance().create()) {
-			ActionResult<Wo> result = new ActionResult<>();
-			Invoke invoke = emc.flag(flag, Invoke.class );
+			ActionResult<Object> result = new ActionResult<>();
+			Invoke invoke = emc.flag(flag, Invoke.class);
 			if (null == invoke) {
 				throw new ExceptionInvokeNotExist(flag);
 			}
@@ -60,17 +64,50 @@ class ActionExecute extends BaseAction {
 			engineScope.put("requestText", gson.toJson(jsonElement));
 			engineScope.put("request", request);
 			engineScope.put("effectivePerson", effectivePerson);
+			CustomResponse customResponse = new CustomResponse();
+			engineScope.put("customResponse", customResponse);
 			Wo wo = new Wo();
 			try {
+				engine.eval(Config.mooToolsScriptText());
 				Object o = engine.eval(invoke.getText(), newContext);
-				wo.setValue(o);
+
+				if (StringUtils.equals("seeOther", customResponse.type)) {
+					WoSeeOther woSeeOther = new WoSeeOther(Objects.toString(customResponse.value, ""));
+					result.setData(woSeeOther);
+				} else if (StringUtils.equals("temporaryRedirect", customResponse.type)) {
+					WoTemporaryRedirect woTemporaryRedirect = new WoTemporaryRedirect(
+							Objects.toString(customResponse.value, ""));
+					result.setData(woTemporaryRedirect);
+				} else {
+					wo.setValue(o);
+					result.setData(wo);
+				}
 			} catch (Exception e) {
 				throw new ExceptionExecuteError(invoke.getName(), e);
 			}
-			result.setData(wo);
+			emc.beginTransaction(Invoke.class);
 			invoke.setLastEndTime(new Date());
+			emc.check(invoke, CheckPersistType.all);
+			emc.commit();
 			return result;
 		}
+	}
+
+	public static class CustomResponse {
+		protected String type = null;
+		protected byte[] bytes;
+		protected Object value;
+
+		public void seeOther(String url) {
+			this.type = "seeOther";
+			this.value = url;
+		}
+
+		public void temporaryRedirect(String url) {
+			this.type = "temporaryRedirect";
+			this.value = url;
+		}
+
 	}
 
 	public static class Wo extends WoValue {

@@ -1,7 +1,5 @@
 package com.x.message.core.entity;
 
-import java.util.List;
-
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -10,14 +8,9 @@ import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 import javax.persistence.Lob;
-import javax.persistence.OrderColumn;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
-import org.apache.openjpa.persistence.PersistentCollection;
-import org.apache.openjpa.persistence.jdbc.ContainerTable;
-import org.apache.openjpa.persistence.jdbc.ElementColumn;
-import org.apache.openjpa.persistence.jdbc.ElementIndex;
 import org.apache.openjpa.persistence.jdbc.Index;
 
 import com.x.base.core.entity.JpaObject;
@@ -59,10 +52,15 @@ public class Message extends SliceJpaObject {
 
 	/* 更新运行方法 */
 
-	// public static String[] FLA GS = new String[] { "id" };
-
 	/* flag标志位 */
 	/* Entity 默认字段结束 */
+
+	public static final String title_FIELDNAME = "title";
+	@FieldDescribe("通知标题.")
+	@Column(length = length_255B, name = ColumnNamePrefix + title_FIELDNAME)
+	@Index(name = TABLE + IndexNameMiddle + title_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String title;
 
 	public static final String body_FIELDNAME = "body";
 	@FieldDescribe("内容.")
@@ -75,18 +73,15 @@ public class Message extends SliceJpaObject {
 	@FieldDescribe("消息类型.")
 	@Column(length = length_255B, name = ColumnNamePrefix + type_FIELDNAME)
 	@Index(name = TABLE + IndexNameMiddle + type_FIELDNAME)
-	@CheckPersist(allowEmpty = true)
+	@CheckPersist(allowEmpty = false)
 	private String type;
 
-	public static final String consumerList_FIELDNAME = "consumerList";
-	@FieldDescribe("消费对象.")
-	@PersistentCollection(fetch = FetchType.EAGER)
-	@OrderColumn(name =  ORDERCOLUMNCOLUMN)
-	@ContainerTable(name = TABLE + ContainerTableNameMiddle
-			+ consumerList_FIELDNAME, joinIndex = @Index(name = TABLE + consumerList_FIELDNAME + JoinIndexNameSuffix))
-	@ElementColumn(length = JpaObject.length_64B, name = ColumnNamePrefix + consumerList_FIELDNAME)
-	@ElementIndex(name = TABLE + consumerList_FIELDNAME + ElementIndexNameSuffix)
-	private List<String> consumerList;
+	public static final String consumer_FIELDNAME = "consumer";
+	@FieldDescribe("消费者.")
+	@Column(length = length_255B, name = ColumnNamePrefix + consumer_FIELDNAME)
+	@Index(name = TABLE + IndexNameMiddle + consumer_FIELDNAME)
+	@CheckPersist(allowEmpty = false)
+	private String consumer;
 
 	public static final String person_FIELDNAME = "person";
 	@FieldDescribe("通知对象.")
@@ -95,12 +90,19 @@ public class Message extends SliceJpaObject {
 	@CheckPersist(allowEmpty = true)
 	private String person;
 
-	public static final String title_FIELDNAME = "title";
-	@FieldDescribe("通知标题.")
-	@Column(length = length_255B, name = ColumnNamePrefix + title_FIELDNAME)
-	@Index(name = TABLE + IndexNameMiddle + title_FIELDNAME)
-	@CheckPersist(allowEmpty = true)
-	private String title;
+	public static final String consumed_FIELDNAME = "consumed";
+	@FieldDescribe("是否已经消费掉.")
+	@Column(name = ColumnNamePrefix + consumed_FIELDNAME)
+	@Index(name = TABLE + IndexNameMiddle + consumed_FIELDNAME)
+	@CheckPersist(allowEmpty = false)
+	private Boolean consumed;
+
+	public static final String instant_FIELDNAME = "instant";
+	@FieldDescribe("主体消息id.")
+	@Column(length = JpaObject.length_id, name = ColumnNamePrefix + instant_FIELDNAME)
+	@Index(name = TABLE + IndexNameMiddle + instant_FIELDNAME)
+	@CheckPersist(allowEmpty = false)
+	private String instant;
 
 	public String getBody() {
 		return body;
@@ -118,14 +120,6 @@ public class Message extends SliceJpaObject {
 		this.type = type;
 	}
 
-	public List<String> getConsumerList() {
-		return consumerList;
-	}
-
-	public void setConsumerList(List<String> consumerList) {
-		this.consumerList = consumerList;
-	}
-
 	public String getPerson() {
 		return person;
 	}
@@ -140,6 +134,30 @@ public class Message extends SliceJpaObject {
 
 	public void setTitle(String title) {
 		this.title = title;
+	}
+
+	public String getConsumer() {
+		return consumer;
+	}
+
+	public void setConsumer(String consumer) {
+		this.consumer = consumer;
+	}
+
+	public Boolean getConsumed() {
+		return consumed;
+	}
+
+	public void setConsumed(Boolean consumed) {
+		this.consumed = consumed;
+	}
+
+	public String getInstant() {
+		return instant;
+	}
+
+	public void setInstant(String instant) {
+		this.instant = instant;
 	}
 
 }

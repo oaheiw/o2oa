@@ -1,5 +1,6 @@
 package com.x.base.core.project.config;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.x.base.core.project.annotation.FieldDescribe;
@@ -32,13 +33,10 @@ public class LogLevel extends ConfigObject {
 	private String x_meeting_assemble_control = "";
 
 	@FieldDescribe("是否启用调试")
-	private String x_collaboration_service_message = "";
-
-	@FieldDescribe("是否启用调试")
-	private String x_collaboration_assemble_websocket = "";
-
-	@FieldDescribe("是否启用调试")
 	private String x_organization_assemble_authentication = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_organization_assemble_control = "";
 
 	@FieldDescribe("是否启用调试")
 	private String x_general_assemble_control = "";
@@ -46,8 +44,134 @@ public class LogLevel extends ConfigObject {
 	@FieldDescribe("是否启用调试")
 	private String x_file_assemble_control = "";
 
+	@FieldDescribe("是否启用调试")
+	private String x_attendance_assemble_control = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_collaboration_core_message = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_organization_core_express = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_query_core_express = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_bbs_assemble_control = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_calendar_assemble_control = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_cms_assemble_control = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_component_assemble_control = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_hotpic_assemble_control = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_message_assemble_communicate = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_mind_assemble_control = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_okr_assemble_control = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_organization_assemble_express = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_organization_assemble_personal = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_portal_assemble_designer = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_portal_assemble_surface = "";
+
+	@FieldDescribe("是否启用调试")
+	private String x_processplatform_assemble_bam = "";
+
+	@FieldDescribe("审计日志配置")
+	private Audit audit = Audit.defaultInstance();
+
 	public static LogLevel defaultInstance() {
 		return new LogLevel();
+	}
+
+	public Audit audit() {
+		return (null == this.audit) ? Audit.defaultInstance() : this.audit;
+	}
+
+	public String x_attendance_assemble_control() {
+		return this.get(this.x_attendance_assemble_control);
+	}
+
+	public String x_collaboration_core_message() {
+		return this.get(this.x_collaboration_core_message);
+	}
+
+	public String x_organization_core_express() {
+		return this.get(this.x_organization_core_express);
+	}
+
+	public String x_query_core_express() {
+		return this.get(this.x_query_core_express);
+	}
+
+	public String x_bbs_assemble_control() {
+		return this.get(this.x_bbs_assemble_control);
+	}
+
+	public String x_calendar_assemble_control() {
+		return this.get(this.x_calendar_assemble_control);
+	}
+
+	public String x_cms_assemble_control() {
+		return this.get(this.x_cms_assemble_control);
+	}
+
+	public String x_component_assemble_control() {
+		return this.get(this.x_component_assemble_control);
+	}
+
+	public String x_hotpic_assemble_control() {
+		return this.get(this.x_hotpic_assemble_control);
+	}
+
+	public String x_message_assemble_communicate() {
+		return this.get(this.x_message_assemble_communicate);
+	}
+
+	public String x_mind_assemble_control() {
+		return this.get(this.x_mind_assemble_control);
+	}
+
+	public String x_okr_assemble_control() {
+		return this.get(this.x_okr_assemble_control);
+	}
+
+	public String x_organization_assemble_express() {
+		return this.get(this.x_organization_assemble_express);
+	}
+
+	public String x_organization_assemble_personal() {
+		return this.get(this.x_organization_assemble_personal);
+	}
+
+	public String x_portal_assemble_designer() {
+		return this.get(this.x_portal_assemble_designer);
+	}
+
+	public String x_portal_assemble_surface() {
+		return this.get(this.x_portal_assemble_surface);
+	}
+
+	public String x_processplatform_assemble_bam() {
+		return this.get(this.x_processplatform_assemble_bam);
 	}
 
 	public String x_program_center() {
@@ -82,16 +206,12 @@ public class LogLevel extends ConfigObject {
 		return this.get(this.x_meeting_assemble_control);
 	}
 
-	public String x_collaboration_service_message() {
-		return this.get(this.x_collaboration_service_message);
-	}
-
-	public String x_collaboration_assemble_websocket() {
-		return this.get(this.x_collaboration_assemble_websocket);
-	}
-
 	public String x_organization_assemble_authentication() {
 		return this.get(this.x_organization_assemble_authentication);
+	}
+
+	public String x_organization_assemble_control() {
+		return this.get(this.x_organization_assemble_control);
 	}
 
 	public String x_general_assemble_control() {
@@ -119,5 +239,34 @@ public class LogLevel extends ConfigObject {
 			return Logger.TRACE;
 		}
 		return Logger.INFO;
+	}
+
+	public static class Audit extends ConfigObject {
+
+		public static final Integer DEFAULT_LOGSIZE = 31;
+		public static final Boolean DEFAULT_ENABLE = false;
+
+		public static Audit defaultInstance() {
+			return new Audit();
+		}
+
+		@FieldDescribe("是否启用审计日志")
+		private Boolean enable;
+
+		@FieldDescribe("审计日志保留天数")
+		private Integer logSize;
+
+		public Boolean enable() {
+			return BooleanUtils.isTrue(this.enable);
+		}
+
+		public Integer logSize() {
+			if ((null == logSize) || (logSize < 0)) {
+				return DEFAULT_LOGSIZE;
+			} else {
+				return this.logSize;
+			}
+		}
+
 	}
 }

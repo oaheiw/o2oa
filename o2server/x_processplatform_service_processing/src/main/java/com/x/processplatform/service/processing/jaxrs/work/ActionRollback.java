@@ -14,6 +14,7 @@ import com.x.base.core.project.exception.ExceptionEntityNotExist;
 import com.x.base.core.project.http.ActionResult;
 import com.x.base.core.project.http.EffectivePerson;
 import com.x.base.core.project.jaxrs.WoId;
+import com.x.base.core.project.tools.PropertyTools;
 import com.x.processplatform.core.entity.content.Read;
 import com.x.processplatform.core.entity.content.ReadCompleted;
 import com.x.processplatform.core.entity.content.Review;
@@ -22,7 +23,10 @@ import com.x.processplatform.core.entity.content.TaskCompleted;
 import com.x.processplatform.core.entity.content.Work;
 import com.x.processplatform.core.entity.content.WorkLog;
 import com.x.processplatform.core.entity.content.WorkStatus;
+import com.x.processplatform.core.entity.element.Activity;
 import com.x.processplatform.core.entity.element.Application;
+import com.x.processplatform.core.entity.element.Form;
+import com.x.processplatform.core.entity.element.Manual;
 import com.x.processplatform.core.entity.element.Process;
 import com.x.processplatform.core.entity.element.util.WorkLogTree;
 import com.x.processplatform.core.entity.element.util.WorkLogTree.Node;
@@ -72,6 +76,12 @@ class ActionRollback extends BaseAction {
 				throw new ExceptionSplittingNotRollback(work.getId(), workLog.getId());
 			}
 
+			Activity activity = business.element().getActivity(workLog.getFromActivity());
+
+			if (null == activity) {
+				throw new ExceptionActivityNotExist(workLog.getFromActivity());
+			}
+
 			List<WorkLog> workLogs = emc.listEqual(WorkLog.class, WorkLog.job_FIELDNAME, workLog.getJob());
 
 			WorkLogTree workLogTree = new WorkLogTree(workLogs);
@@ -88,7 +98,7 @@ class ActionRollback extends BaseAction {
 			emc.beginTransaction(ReadCompleted.class);
 			emc.beginTransaction(Review.class);
 
-			this.rollbackWork(work, workLog);
+			this.rollbackWork(business, work, workLog, activity);
 
 			this.disconnectWorkLog(work, workLog);
 
@@ -118,7 +128,7 @@ class ActionRollback extends BaseAction {
 		}
 	}
 
-	private void rollbackWork(Work work, WorkLog workLog) throws Exception {
+	private void rollbackWork(Business business, Work work, WorkLog workLog, Activity activity) throws Exception {
 		work.setSplitting(false);
 		work.setActivityName(workLog.getFromActivityName());
 		work.setActivity(workLog.getFromActivity());
@@ -127,6 +137,16 @@ class ActionRollback extends BaseAction {
 		work.setActivityDescription("");
 		work.setActivityToken(workLog.getFromActivityToken());
 		work.setActivityType(workLog.getFromActivityType());
+		/* 清除掉当前的待办人准备重新生成 */
+		work.getManualTaskIdentityList().clear();
+		String formId = PropertyTools.getOrElse(activity, Manual.form_FIELDNAME, String.class, "");
+		if (StringUtils.isNotEmpty(formId)) {
+			/* 默认流程导入的时候表单字段里面填写了不存在的值,所以这里要进行校验是否存在 */
+			Form form = business.element().get(formId, Form.class);
+			if (null != form) {
+				work.setForm(formId);
+			}
+		}
 		work.setErrorRetry(0);
 		work.setWorkStatus(WorkStatus.processing);
 	}
@@ -160,8 +180,6 @@ class ActionRollback extends BaseAction {
 				MessageFactory.taskCompleted_delete(o);
 			} else {
 				o.setCompleted(false);
-				o.setCompletedTime(null);
-				o.setCompletedTimeMonth("");
 				o.setWorkCompleted("");
 				o.setWork(work.getId());
 			}
@@ -192,8 +210,6 @@ class ActionRollback extends BaseAction {
 				MessageFactory.readCompleted_delete(o);
 			} else {
 				o.setCompleted(false);
-				o.setCompletedTime(null);
-				o.setCompletedTimeMonth("");
 				o.setWorkCompleted("");
 				o.setWork(work.getId());
 			}
@@ -211,6 +227,7 @@ class ActionRollback extends BaseAction {
 					o.setCompleted(false);
 					o.setCompletedTime(null);
 					o.setCompletedTimeMonth("");
+					o.setWorkCompleted("");
 				}
 			}
 		}

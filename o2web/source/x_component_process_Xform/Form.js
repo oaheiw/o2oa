@@ -87,7 +87,6 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         return css;
     },
     loadCss: function(){
-        debugger;
         cssText = this.json.css.code;
         //var head = (document.head || document.getElementsByTagName("head")[0] || document.documentElement);
         var styleNode = $("style"+this.json.id);
@@ -98,11 +97,24 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
             var rex = new RegExp("(.+)(?=\\{)", "g");
             var match;
             var id = this.json.id.replace(/\-/g, "");
+            var prefix = ".css" + id + " ";
+debugger;
             while ((match = rex.exec(cssText)) !== null) {
-                var prefix = ".css" + id + " ";
-                var rule = prefix + match[0];
-                cssText = cssText.substring(0, match.index) + rule + cssText.substring(rex.lastIndex, cssText.length);
-                rex.lastIndex = rex.lastIndex + prefix.length;
+                var rulesStr = match[0];
+                if (rulesStr.indexOf(",")!=-1){
+                    var rules = rulesStr.split(/\s*,\s*/g);
+                    rules = rules.map(function(r){
+                        return prefix + r;
+                    });
+                    var rule = rules.join(", ");
+                    cssText = cssText.substring(0, match.index) + rule + cssText.substring(rex.lastIndex, cssText.length);
+                    rex.lastIndex = rex.lastIndex + (prefix.length*rules.length);
+
+                }else{
+                    var rule = prefix + match[0];
+                    cssText = cssText.substring(0, match.index) + rule + cssText.substring(rex.lastIndex, cssText.length);
+                    rex.lastIndex = rex.lastIndex + prefix.length;
+                }
             }
 
             var styleNode = document.createElement("style");
@@ -123,9 +135,11 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                 var cssTextNode = document.createTextNode(cssText);
                 styleNode.appendChild(cssTextNode);
             }
+            return "css" + id;
         }
+        return "";
     },
-	load: function(){
+	load: function(callback){
         if (this.app){
             if (this.app.formNode) this.app.formNode.setStyles(this.json.styles);
             if (this.app.addEvent){
@@ -139,11 +153,13 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         }
         if (!this.businessData.control.allowSave) this.setOptions({"readonly": true});
 
-        if (this.json.css && this.json.css.code) this.loadCss();
+        var cssClass = "";
+        if (this.json.css && this.json.css.code) cssClass = this.loadCss();
 
         this.loadMacro(function(){
             this.container.set("html", this.html);
             this.node = this.container.getFirst();
+            if (cssClass) this.node.addClass(cssClass);
 
             this._loadEvents();
             if (this.fireEvent("queryLoad")){
@@ -152,7 +168,7 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                 this._loadBusinessData();
                 this.fireEvent("beforeLoad");
                 if (this.app) if (this.app.fireEvent) this.app.fireEvent("beforeLoad");
-                this.loadContent();
+                this.loadContent(callback);
             }
         }.bind(this));
 
@@ -169,22 +185,231 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         //     if (callback) callback();
         // }
     },
-    loadContent: function(){
+    loadContent: function(callback){
+        this.subformCount = 0;
+        this.subformLoadedCount = 0;
+        this.subformLoaded = [ this.json.id ];
+
+        this.subpageCount = 0;
+        this.subpageLoadedCount = 0;
+        this.subpageLoaded = [];
+
+        this.widgetCount = 0;
+        this.widgetLoadedCount = 0;
+        this.widgetLoaded = [];
+
         this._loadHtml();
         this._loadForm();
         this.fireEvent("beforeModulesLoad");
         if (this.app && this.app.fireEvent) this.app.fireEvent("beforeModulesLoad");
         this._loadModules(this.node);
 
-        this.fireEvent("afterModulesLoad");
-        this.fireEvent("postLoad");
-        this.fireEvent("afterLoad");
-        if (this.app && this.app.fireEvent){
-            this.app.fireEvent("afterModulesLoad");
-            this.app.fireEvent("postLoad");
-            this.app.fireEvent("afterLoad");
+        if (this.json.mode === "Mobile"){
+            var node = document.body.getElement(".o2_form_mobile_actions");
+            //if (node)
+            this._loadMobileActions(node, callback);
+        }else{
+            if (callback) callback();
         }
 
+        this.fireEvent("postLoad");
+        if (this.app && this.app.fireEvent)this.app.fireEvent("postLoad");
+        this.checkSubformLoaded( true );
+    },
+    checkSubformLoaded : function( isAllSubformLoaded ){
+        if( isAllSubformLoaded ){
+            this.isAllSubformLoaded = true;
+        }
+        if( !this.isAllSubformLoaded )return;
+        //console.log( "checkSubformLoaded this.subformCount="+ this.subformCount + " this.subformLoadedCount="+this.subformLoadedCount );
+        if( (!this.subformCount || this.subformCount === this.subformLoadedCount) &&
+            (!this.subpageCount || this.subpageCount === this.subpageLoadedCount) &&
+            (!this.widgetCount || this.widgetCount === this.widgetLoadedCount)
+        ){
+            this.fireEvent("afterModulesLoad");
+            if (this.app && this.app.fireEvent)this.app.fireEvent("afterModulesLoad");
+
+            this.fireEvent("afterLoad");
+            if (this.app && this.app.fireEvent)this.app.fireEvent("afterLoad");
+            this.isLoaded = true;
+        }
+    },
+    _loadMobileDefaultTools: function(callback){
+	    if (this.json.defaultTools){
+	        if (callback) callback();
+        }else{
+            this.json.defaultTools = o2.JSON.get("/x_component_process_FormDesigner/Module/Form/toolbars.json", function(json){
+                this.json.defaultTools = json;
+                if (callback) callback();
+            }.bind(this));
+        }
+    },
+
+    _loadMobileActions: function(node, callback){
+	    var tools = [];
+        this._loadMobileDefaultTools(function(){
+            if (this.json.defaultTools){
+                this.json.defaultTools.each(function(tool){
+                    var flag = this._checkDefaultMobileActionItem(tool, this.options.readonly);
+                    if (flag) tools.push(tool);
+                }.bind(this));
+            }
+            if (this.json.tools){
+                this.json.tools.each(function(tool){
+                    var flag = this._checkCustomMobileActionItem(tool, this.options.readonly);
+                    if (flag) tools.push(tool);
+                }.bind(this));
+            }
+            this.mobileTools = tools;
+            if (tools.length) if (node) this._createMobileActions(node, tools);
+            if (callback) callback();
+        }.bind(this));
+    },
+    _createMobileActions:function(node, tools){
+        node.show();
+	    var count = tools.length;
+	    if (count<=2){
+            this.css.html5ActionButton.width = "100%";
+            if (count==2) this.css.html5ActionButton.width = "49%";
+            tools.each(function(tool){
+                var action = new Element("div", {"styles": this.css.html5ActionButton, "text": tool.text}).inject(node);
+                action.store("tool", tool);
+                action.addEvent("click", function(e){
+                    var t = e.target.retrieve("tool");
+                    e.setDisable = function(){}
+                    if (t.actionScript){
+                        this._runCustomAction(t.actionScript);
+                    }else{
+                        if (this[t.action]) this[t.action](e);
+                    }
+                }.bind(this));
+                this._setMobileBottonStyle(action);
+            }.bind(this));
+            if (count==2) new Element("div", {"styles": this.css.html5ActionButtonSplit}).inject(node.getLast(), "before");
+        }else{
+            this.css.html5ActionButton.width = "38%"
+            for (var i=0; i<2; i++){
+                tool = tools[i];
+                var action = new Element("div", {"styles": this.css.html5ActionButton, "text": tool.text}).inject(node);
+                action.store("tool", tool);
+                action.addEvent("click", function(e){
+                    var t = e.target.retrieve("tool");
+                    e.setDisable = function(){}
+                    if (t.actionScript){
+                        this._runCustomAction(t.actionScript);
+                    }else{
+                        if (this[t.action]) this[t.action](e);
+                    }
+                }.bind(this));
+                this._setMobileBottonStyle(action);
+            }
+            new Element("div", {"styles": this.css.html5ActionButtonSplit}).inject(node.getLast(), "before");
+            new Element("div", {"styles": this.css.html5ActionButtonSplit}).inject(node);
+            this.css.html5ActionButton.width = "23%"
+            var action = new Element("div", {"styles": this.css.html5ActionButton, "text": "…"}).inject(node);
+            action.addEvent("click", function(e){
+                this._loadMoreMobileActions(tools, 2, node);
+            }.bind(this));
+            this._setMobileBottonStyle(action);
+        }
+    },
+    _loadMoreMobileActions: function(tools, n, node){
+	    document.body.mask({
+            "style": {
+                "background-color": "#cccccc",
+                "opacity": 0.6
+            },
+            "hideOnClick": true,
+            "onHide": function(){
+                this.actionMoreArea.setStyle("display", "none");
+            }.bind(this)
+        });
+	    if (this.actionMoreArea){
+            this.actionMoreArea.setStyle("display", "block");
+        }else{
+
+	        var size = document.body.getSize();
+            this.actionMoreArea = new Element("div", {"styles": this.css.html5ActionOtherArea}).inject(document.body);
+            var pl = this.actionMoreArea.getStyle("padding-left").toInt();
+            var pr = this.actionMoreArea.getStyle("padding-right").toInt();
+            var w = size.x-pl-pr;
+            this.actionMoreArea.setStyle("width", ""+w+"px");
+            for (var i=n; i<tools.length; i++){
+                tool = tools[i];
+                var action = new Element("div", {"styles": this.css.html5ActionOtherButton, "text": tool.text}).inject(this.actionMoreArea);
+                action.store("tool", tool);
+                action.addEvent("click", function(e){
+                    var t = e.target.retrieve("tool");
+                    e.setDisable = function(){}
+                    if (t.actionScript){
+                        this._runCustomAction(t.actionScript);
+                    }else{
+                        if (this[t.action]) this[t.action](e);
+                    }
+                }.bind(this));
+                this._setMobileBottonStyle(action);
+            }
+        }
+
+        // actionArea.position({
+        //     relativeTo: node,
+        //     position: 'topCenter',
+        //     edge: 'bottomCenter'
+        // });
+    },
+    _setMobileBottonStyle:function(action){
+        var _self = this;
+        action.addEvents({
+            "mouseover": function(e){ this.setStyles(_self.css.html5ActionButton_over)},
+            "mouseout": function(e){this.setStyles(_self.css.html5ActionButton_up)},
+            "mousedown": function(e){this.setStyles(_self.css.html5ActionButton_over)},
+            "mouseup": function(e){this.setStyles(_self.css.html5ActionButton_up)},
+            "touchstart": function(e){this.setStyles(_self.css.html5ActionButton_over)},
+            "touchcancel": function(e){this.setStyles(_self.css.html5ActionButton_up)},
+            "touchend": function(e){this.setStyles(_self.css.html5ActionButton_up)},
+            "touchmove": function(e){this.setStyles(_self.css.html5ActionButton_over)}
+        });
+    },
+    _runCustomAction: function(actionScript){
+        //var script = bt.node.retrieve("script");
+        this.Macro.exec(actionScript, this);
+    },
+    _checkCustomMobileActionItem: function(tool,readonly){
+        var flag = true;
+        if (readonly){
+            flag = tool.readShow;
+        }else{
+            flag = tool.editShow;
+        }
+        if (flag){
+            flag = true;
+            if (tool.control){
+                flag = this.form.businessData.control[tool.control]
+            }
+            if (tool.condition){
+                var hideFlag = this.form.Macro.exec(tool.condition, this);
+                flag = !hideFlag;
+            }
+        }
+        return flag;
+    },
+    _checkDefaultMobileActionItem: function(tool, readonly, noCondition){
+        var flag = true;
+        if (tool.control){
+            flag = this.businessData.control[tool.control]
+        }
+        if (!noCondition) if (tool.condition){
+            var hideFlag = this.Macro.exec(tool.condition, this);
+            flag = flag && (!hideFlag);
+        }
+        if (tool.id == "action_processWork"){
+            if (!this.businessData.task){
+                flag = false;
+            }
+        }
+        if (tool.id == "action_rollback") tool.read = true;
+        if (readonly) if (!tool.read) flag = false;
+        return flag;
     },
 	_loadBusinessData: function(){
         if (!this.businessData){
@@ -305,7 +530,27 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
 			}
 		}.bind(this));
 	},
-
+    addModuleEvent: function(key, fun){
+        if (this.options.moduleEvents.indexOf(key)!==-1){
+            this.addEvent(key, function(event){
+                return (fun) ? fun(this, event) : null;
+            }.bind(this));
+        }else{
+            if (key==="load"){
+                this.addEvent("postLoad", function(event){
+                    return (fun) ? fun(this, event) : null;
+                }.bind(this));
+            }else if (key==="submit"){
+                this.addEvent("beforeProcess", function(event){
+                    return (fun) ? fun(this, event) : null;
+                }.bind(this));
+            }else{
+                this.node.addEvent(key, function(event){
+                    return (fun) ? fun(this, event) : null;
+                }.bind(this));
+            }
+        }
+    },
 
 	_getDomjson: function(dom){
 		var mwfType = dom.get("MWFtype") || dom.get("mwftype");
@@ -361,11 +606,20 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
 
 		moduleNodes.each(function(node){
 			var json = this._getDomjson(node);
-			var module = this._loadModule(json, node);
-			this.modules.push(module);
+            //if( json.type === "Subform" || json.moduleName === "subform" )this.subformCount++;
+            //if( json.type === "Subpage" || json.moduleName === "subpage" )this.subpageCount++;
+            var module = this._loadModule(json, node);
+            this.modules.push(module);
 		}.bind(this));
 	},
 	_loadModule: function(json, node, beforeLoad){
+        //console.log( json.id );
+        if( json.type === "Subform" || json.moduleName === "subform" )this.subformCount++;
+        //if( json.type === "Subform" || json.moduleName === "subform" ){
+        //    console.log( "add subformcount ， this.subformCount = " + this.subformCount );
+        //}
+        if( json.type === "Subpage" || json.moduleName === "subpage" )this.subpageCount++;
+        if( json.type === "Widget" || json.moduleName === "widget" )this.widgetCount++;
 	    if (!MWF["APP"+json.type]){
             MWF.xDesktop.requireApp("process.Xform", json.type, null, false);
         }
@@ -398,6 +652,7 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         var data= Object.clone(this.businessData.data);
         Object.each(this.forms, function(module, id){
             if (module.json.type==="Opinion"){
+                debugger;
                 if (issubmit){
                     this.saveOpinion(module);
                     delete data[id];
@@ -457,7 +712,7 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         return obj;
     },
     getSectionDataByScript: function(code, v, obj) {
-        var key = this.form.Macro.exec(code, this);
+        var key = this.Macro.exec(code, this);
         if (!obj || (typeOf(obj)!=="object")) obj={};
         if (key) obj[key] = v;
         return obj;
@@ -501,7 +756,7 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                         layout.desktop.apps["TaskCenter"].refreshAll();
                     }
                 }
-            }.bind(this));
+            }.bind(this), null, false);
         }else{
             this.app.refreshTaskCenter();
         }
@@ -666,7 +921,7 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         if (!this.validation(routeName, opinion, processor, medias)){
             //this.app.content.unmask();
             processor.node.unmask();
-            if (callback) callback();
+            //if (callback) callback();
             return false;
         }
         if (!opinion){
@@ -734,7 +989,6 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                             var div = new Element("div", {"styles": {"margin": "10px 10px 0px 10px", "padding": "5px", "overflow": "hidden"}}).inject(this.app.content);
                             div.set("html", content);
 
-                            debugger;
                             if (this.json.isPrompt!=="false"){
                                 var options ={
                                     "content": div,
@@ -801,27 +1055,85 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         }.bind(this));
     },
     processWork: function(){
+        if (this.json.mode=="Mobile"){
+            this.processWork_mobile();
+        }else{
+            this.fireEvent("beforeProcessWork");
+            if (this.app && this.app.fireEvent) this.app.fireEvent("beforeProcessWork");
+
+            if (!this.formCustomValidation("", "")){
+                this.app.content.unmask();
+                //    if (callback) callback();
+                return false;
+            }
+            // MWF.require("MWF.widget.Mask", function() {
+            //     this.mask = new MWF.widget.Mask({"style": "desktop", "zIndex": 50000});
+            //     this.mask.loadNode(this.app.content);
+
+            if (!this.formValidation("", "")){
+                this.app.content.unmask();
+                //    if (callback) callback();
+                return false;
+            }
+
+            //var node = new Element("div", {"styles": this.css.rollbackAreaNode});
+            var processNode = new Element("div", {"styles": this.app.css.processNode_Area}).inject(this.app.content);
+            this.setProcessNode(processNode, "process");
+
+            // var html = "<div style=\"line-height: 30px; height: 30px; color: #333333; overflow: hidden\">请选择文件要回溯到的位置：</div>";
+            // html += "<div style=\"max-height: 300px; margin-bottom:10px; margin-top:10px; overflow-y:auto;\"></div>";
+            // node.set("html", html);
+            // var rollbackItemNode = node.getLast();
+            // this.getRollbackLogs(rollbackItemNode);
+            //processNode.inject(this.app.content);
+
+            this.processDlg = o2.DL.open({
+                "title": this.app.lp.process,
+                "style": this.json.dialogStyle || "user",
+                "isResize": false,
+                "content": processNode,
+                "width": 600,
+                "buttonList": [
+                    {
+                        "type" : "ok",
+                        "text": MWF.LP.process.button.ok,
+                        "action": function(d, e){
+                            if (this.processor) this.processor.okButton.click();
+                        }.bind(this)
+                    },
+                    {
+                        "type" : "cancel",
+                        "text": MWF.LP.process.button.cancel,
+                        "action": function(){this.processDlg.close();}.bind(this)
+                    }
+                ]
+            });
+        }
+    },
+    processWork_mobile: function(){
         if (this.app.inBrowser){
             this.app.content.setStyle("height", document.body.getSize().y);
         }
 
         this.fireEvent("beforeProcessWork");
         if (this.app && this.app.fireEvent) this.app.fireEvent("beforeProcessWork");
-
         var position = this.app.content.getPosition(this.app.content.getOffsetParent());
-        this.app.content.mask({
-            "destroyOnHide": true,
-            "style": this.app.css.maskNode,
-            "useIframeShim": true,
-            "iframeShimOptions": {"browsers": true},
-            "onShow": function(){
-                this.shim.shim.setStyles({
-                    "opacity": 0,
-                    "top": ""+position.y+"px",
-                    "left": ""+position.x+"px"
-                });
-            }
-        });
+
+        if (this.json.mode!="Mobile"){
+            this.app.content.mask({
+                "destroyOnHide": true,
+                "style": this.app.css.maskNode,
+                "useIframeShim": true,
+                "iframeShimOptions": {"browsers": true},
+                "onShow": function(){
+                    this.shim.shim.setStyles({
+                        "opacity": 0,
+                        "top": ""+position.y+"px",
+                        "left": ""+position.x+"px"
+                    });
+                }
+            });
+        }
 
         if (!this.formCustomValidation("", "")){
             this.app.content.unmask();
@@ -847,12 +1159,25 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
     },
 
     createProcessNode: function(){
+        var fromCss = this.app.css.processNode_from;
+        var css = this.app.css.processNode;
         if (layout.mobile){
+            fromCss = this.app.css.processNodeMobile_from;
+            css = this.app.css.processNodeMobile;
+
             var contentSize = this.app.content.getSize();
-            this.app.css.processNode_from.width = contentSize.x+"px";
-            this.app.css.processNode.width = contentSize.x+"px";
+            fromCss.width = "100%";
+            css.width = "100%";
+            fromCss.height = contentSize.y+"px";
+            css.height = contentSize.y+"px";
         }
-        var processNode = new Element("div", {"styles": this.app.css.processNode_from}).inject(this.app.content);
+
+        if (this.json.mode=="Mobile"){
+            var processNode = new Element("div", {"styles": fromCss}).inject(document.body);
+        }else{
+            var processNode = new Element("div", {"styles": fromCss}).inject(this.app.content);
+        }
+
 
         processNode.position({
             relativeTo: this.app.content,
@@ -872,46 +1197,59 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         }.bind(this));
         return {"opinion": opinion.trim(), "medias": medias};
     },
-    setProcessNode: function(processNode){
+    setProcessNode: function(processNode, style){
         var _self = this;
         MWF.xDesktop.requireApp("process.Work", "Processor", function(){
             var op = this.getOpinion();
             var mds = op.medias;
-            new MWF.xApplication.process.Work.Processor(processNode, this.businessData.task, {
-                "style": (layout.mobile) ? "mobile" : "default",
+            this.processor = new MWF.xApplication.process.Work.Processor(processNode, this.businessData.task, {
+                "style": (layout.mobile) ? "mobile" : (style || "default"),
                 "opinion": op.opinion,
+                "tabletWidth" : this.json.tabletWidth || 0,
+                "tabletHeight" : this.json.tabletHeight || 0,
                 "onCancel": function(){
                     processNode.destroy();
                     _self.app.content.unmask();
                     delete this;
                 },
                 "onSubmit": function(routeName, opinion, medias){
-                    if (!medias || !medias.length) medias = mds;
+                    if (!medias || !medias.length){
+                        medias = mds;
+                    }else{
+                        medias = medias.concat(mds)
+                    }
+
                     _self.submitWork(routeName, opinion, medias, function(){
                         this.destroy();
                         processNode.destroy();
+                        if (_self.processDlg) _self.processDlg.close();
                         delete this;
                     }.bind(this), this);
                 }
-            })
+            });
         }.bind(this));
     },
     showProcessNode: function(processNode){
-        var size = this.app.content.getSize();
-        var nodeSize = processNode.getSize();
+	    if (layout.mobile){
+            processNode.setStyles(this.app.css.processNodeMobile)
+        }else{
+            var size = this.app.content.getSize();
+            var nodeSize = processNode.getSize();
 
-        var top = size.y/2-nodeSize.y/2-20;
-        var left = size.x/2-nodeSize.x/2;
-        if (top<0) top = 0;
+            var top = size.y/2-nodeSize.y/2-20;
+            var left = size.x/2-nodeSize.x/2;
+            if (top<0) top = 0;
 
-        this.app.css.processNode.top = ""+top+"px";
-        this.app.css.processNode.left = ""+left+"px";
+            this.app.css.processNode.top = ""+top+"px";
+            this.app.css.processNode.left = ""+left+"px";
 
-        var morph = new Fx.Morph(processNode, {
-            "duration": 300,
-            "transition": Fx.Transitions.Expo.easeOut
-        });
-        morph.start(this.app.css.processNode);
+            var morph = new Fx.Morph(processNode, {
+                "duration": 300,
+                "transition": Fx.Transitions.Expo.easeOut
+            });
+            morph.start(this.app.css.processNode);
+        }
+
     },
 
 
@@ -977,10 +1315,12 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                 "maskNode": mask || this.app.content,
                 "buttonList": [
                     {
+                        "type" : "ok",
                         "text": MWF.LP.process.button.ok,
                         "action": ok
                     },
                     {
+                        "type" : "cancel",
                         "text": MWF.LP.process.button.cancel,
                         "action": cancel
                     }
@@ -1030,13 +1370,14 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         }
         MWF.require("MWF.xDesktop.Dialog", function(){
             var width = 600;
-            var height = 220;
+            var height = 230;
             var p = MWF.getCenterPosition(this.app.content, width, height);
 
             var _self = this;
             var dlg = new MWF.xDesktop.Dialog({
                 "title": this.app.lp.addSplit,
-                "style": "work",
+                //"style": "work","
+                "style" : this.json.dialogStyle || "user",
                 "top": p.y-100,
                 "left": p.x,
                 "fromTop": p.y-100,
@@ -1046,29 +1387,56 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                 "url": this.app.path+"split.html",
                 "container": this.app.content,
                 "isClose": true,
+                "buttonList": [
+                    {
+                        "type" : "ok",
+                        "text": MWF.LP.process.button.ok,
+                        "action": function(d, e){
+                            //this.doResetWork(dlg);
+                            var input = dlg.content.getElement("input");
+                            var checks = dlg.content.getElements(".o2_addSplit_radio");
+                            var value = input.get("value");
+                            var trimExist = true;
+                            if (checks[1].checked) trimExist = false;
+                            _self.doAddSplit(dlg, value, trimExist);
+                        }.bind(this)
+                    },
+                    {
+                        "type" : "cancel",
+                        "text": MWF.LP.process.button.cancel,
+                        "action": function(){dlg.close();}
+                    }
+                ],
                 "onPostShow": function(){
-                    debugger;
-                    var okButton = dlg.content.getElement(".o2_addSplit_okButton");
-                    var cancelButton = dlg.content.getElement(".o2_addSplit_cancelButton");
+                    //var okButton = dlg.content.getElement(".o2_addSplit_okButton");
+                    //var cancelButton = dlg.content.getElement(".o2_addSplit_cancelButton");
                     var selectButton = dlg.content.getElement(".o2_addSplit_selector");
                     var input = dlg.content.getElement("input");
-                    okButton.addEvent("click", function(){
-                        var value = input.get("value");
-                        _self.doAddSplit(this, value);
-                    }.bind(this));
-                    cancelButton.addEvent("click", function(){
-                        this.close();
-                    }.bind(this));
+                    var checks = dlg.content.getElements(".o2_addSplit_radio");
+
+                    //okButton.addEvent("click", function(){
+                    //    var value = input.get("value");
+                    //    var trimExist = true;
+                    //    if (checks[1].checked) trimExist = false;
+                    //    _self.doAddSplit(this, value, trimExist);
+                    //}.bind(this));
+                    //cancelButton.addEvent("click", function(){
+                    //    this.close();
+                    //}.bind(this));
                     selectButton.addEvent("click", function(){
                         var value = input.get("value");
                         MWF.xDesktop.requireApp("Selector", "package", function(){
                             new o2.O2Selector(_self.app.content, {
                                 "type": "",
-                                "count": 1,
-                                "values": (value) ? [input.get("value")]: [],
+                                "count": 0,
+                                "values": (value) ? value.split(o2.splitStr): [],
                                 "types": ["unit", "identity", "group", "role"],
                                 "onComplete": function(items){
-                                    input.set("value", items[0].data.distinguishedName);
+                                    var v = [];
+                                    items.each(function(item){
+                                        v.push(item.data.distinguishedName);
+                                    });
+                                    input.set("value", v.join(", "));
                                 }
                             });
                         }.bind(this));
@@ -1079,26 +1447,28 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
             dlg.show();
         }.bind(this));
     },
-    doAddSplit: function(dlg, splitValue){
-        if (!splitValue){
+    doAddSplit: function(dlg, splitValues, trimExist){
+        if (!splitValues){
             this.app.notice(MWF.xApplication.process.Xform.LP.inputSplitValue, "error", dlg.node);
             return false;
         }
         MWF.require("MWF.widget.Mask", function(){
+            var splitValue = splitValues.split(o2.splitStr);
             this.mask = new MWF.widget.Mask({"style": "desktop", "zIndex": 50000});
             this.mask.loadNode(this.app.content);
 
             this.fireEvent("beforeAddSplit");
             if (this.app && this.app.fireEvent) this.app.fireEvent("beforeAddSplit");
 
-            this.addSplitWork(splitValue, function(){
-                this.workAction.getJobByWork(function(workJson){
-                    this.fireEvent("afterReset");
-                    if (this.app && this.app.fireEvent) this.app.fireEvent("afterReset");
-                    this.addAddSplitMessage(workJson.data);
-                    //this.app.notice(MWF.xApplication.process.Xform.LP.addSplitOk+": "+MWF.name.cns(names).join(", "), "success");
-                    //this.app.close();
-                }.bind(this), null, this.businessData.work.id);
+            this.addSplitWork(splitValue, trimExist, function(json){
+                this.fireEvent("afterAddSplit");
+                if (this.app && this.app.fireEvent) this.app.fireEvent("afterAddSplit");
+                this.addAddSplitMessage(json.data);
+                // this.workAction.loadWork(function(workJson){
+                //     this.fireEvent("afterAddSplit");
+                //     if (this.app && this.app.fireEvent) this.app.fireEvent("afterAddSplit");
+                //     this.addAddSplitMessage(workJson.data);
+                // }.bind(this), null, this.businessData.work.id);
                 dlg.close();
                 if (this.mask) {this.mask.hide(); this.mask = null;}
             }.bind(this), function(xhr, text, error){
@@ -1109,24 +1479,37 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
             }.bind(this));
         }.bind(this));
     },
-    addSplitWork: function(splitValue, success, failure){
-        var data = {"splitValue": splitValue};
-        this.saveFormData(
-            function(json){
-                this.workAction.addSplit(
-                    function(json){
-                        if (success) success(json);
-                    }.bind(this),
-                    function(xhr, text, error){
-                        if (failure) failure(xhr, text, error);
-                    },
-                    this.businessData.work.id, data
-                );
-            }.bind(this),
-            function(xhr, text, error){
-                if (failure) failure(xhr, text, error);
-            }, true, null, true
-        );
+    addSplitWork: function(splitValue, trimExist, success, failure){
+        var data = {"splitValueList": splitValue, "trimExist": trimExist};
+        if (this.options.readonly){
+            this.workAction.addSplit(
+                function(json){
+                    if (success) success(json);
+                }.bind(this),
+                function(xhr, text, error){
+                    if (failure) failure(xhr, text, error);
+                },
+                this.businessData.work.id, data
+            );
+        }else{
+            this.saveFormData(
+                function(json){
+                    this.workAction.addSplit(
+                        function(json){
+                            if (success) success(json);
+                        }.bind(this),
+                        function(xhr, text, error){
+                            if (failure) failure(xhr, text, error);
+                        },
+                        this.businessData.work.id, data
+                    );
+                }.bind(this),
+                function(xhr, text, error){
+                    if (failure) failure(xhr, text, error);
+                }, true, null, true
+            );
+        }
+
     },
     setRollBackChecked: function(item){
         item.store("isSelected", true);
@@ -1217,19 +1600,20 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
 
         var dlg = o2.DL.open({
             "title": this.app.lp.rollback,
-            //"style": "work",
+            "style": this.json.dialogStyle || "user",
             "isResize": false,
             "content": node,
             "width": 600,
             "buttonList": [
                 {
+                    "type" : "ok",
                     "text": MWF.LP.process.button.ok,
                     "action": function(d, e){
-                        debugger;
                         this.doRollback(node, e, dlg);
                     }.bind(this)
                 },
                 {
+                    "type" : "cancel",
                     "text": MWF.LP.process.button.cancel,
                     "action": function(){dlg.close();}
                 }
@@ -1253,7 +1637,7 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                     this.close();
                 }, function(){
                     this.close();
-                });
+                }, null, null, this.json.confirmStyle);
                 break;
             }
         }
@@ -1270,8 +1654,8 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
             this.doRollbackActionInvoke(log, function(json){
                 var id = json.data.id;
                 this.workAction.listTaskByWork(function(workJson){
-                    this.fireEvent("afterReset");
-                    if (this.app && this.app.fireEvent) this.app.fireEvent("afterReset");
+                    this.fireEvent("afterRollback");
+                    if (this.app && this.app.fireEvent) this.app.fireEvent("afterRollback");
                     this.addRollbackMessage(workJson.data);
                     //this.app.notice(MWF.xApplication.process.Xform.LP.rollbackOk+": "+MWF.name.cns(names).join(", "), "success");
                     this.app.close();
@@ -1309,6 +1693,29 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         return layout.desktop.message.addMessage(msg);
     },
 
+    pressWork: function(e){
+	    if(e && e.setDisable)e.setDisable(true);
+        o2.Actions.get("x_processplatform_assemble_surface").press(this.businessData.work.id, function(json){
+            var users = o2.name.cns(json.data.valueList).join(", ");
+            this.app.notice("已经向待办人："+users+", 发送了提醒", "success");
+            if(e && e.setDisable)e.setDisable(false);
+        }.bind(this), function(xhr, text, error){
+            //e.setDisable(false);
+            if (xhr.status!=0){
+                var errorText = error;
+                if (xhr){
+                    var json = JSON.decode(xhr.responseText);
+                    if (json){
+                        errorText = json.message.trim() || "request json error";
+                    }else{
+                        errorText = "request json error: "+xhr.responseText;
+                    }
+                }
+                MWF.xDesktop.notice("error", {x: "right", y:"top"}, errorText);
+            }
+        });
+    },
+
     resetWork: function(){
         if (!this.businessData.control["allowReset"]){
             MWF.xDesktop.notice("error", {x: "right", y:"top"}, "Permission Denied");
@@ -1322,7 +1729,7 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
             var _self = this;
             var dlg = new MWF.xDesktop.Dialog({
                 "title": this.app.lp.reset,
-                "style": "work",
+                "style": this.json.dialogStyle || "user", //|| "work",
                 "top": p.y-100,
                 "left": p.x,
                 "fromTop": p.y-100,
@@ -1332,13 +1739,27 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                 "url": this.app.path+"reset.html",
                 "container": this.app.content,
                 "isClose": true,
+                "buttonList": [
+                    {
+                        "type" : "ok",
+                        "text": MWF.LP.process.button.ok,
+                        "action": function(d, e){
+                            this.doResetWork(dlg);
+                        }.bind(this)
+                    },
+                    {
+                        "type" : "cancel",
+                        "text": MWF.LP.process.button.cancel,
+                        "action": function(){dlg.close();}
+                    }
+                ],
                 "onPostShow": function(){
-                    $("resetWork_okButton").addEvent("click", function(){
-                        _self.doResetWork(this);
-                    }.bind(this));
-                    $("resetWork_cancelButton").addEvent("click", function(){
-                        this.close();
-                    }.bind(this));
+                    //$("resetWork_okButton").addEvent("click", function(){
+                    //    _self.doResetWork(this);
+                    //}.bind(this));
+                    //$("resetWork_cancelButton").addEvent("click", function(){
+                    //    this.close();
+                    //}.bind(this));
 
                     $("resetWork_selPeopleButton").addEvent("click", function(){
                         _self.selectPeople(this);
@@ -1394,8 +1815,10 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                 dlg.identityList = identityList;
             }.bind(this)
         };
+        MWF.xDesktop.requireApp("Selector", "package", function(){
+            var selector = new MWF.O2Selector(this.app.content, options);
+        }.bind(this));
 
-        var selector = new MWF.O2Selector(this.app.content, options);
     },
 
     // selectPeopleDepartment: function(dlg, department, count){
@@ -1468,8 +1891,10 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                 dlg.identityList = identityList;
             }.bind(this)
         };
+        MWF.xDesktop.requireApp("Selector", "package", function(){
+            var selector = new MWF.O2Selector(this.app.content, options);
+        }.bind(this));
 
-        var selector = new MWF.O2Selector(this.app.content, options);
     },
 
 
@@ -1494,7 +1919,7 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
             if (this.app && this.app.fireEvent) this.app.fireEvent("beforeReset");
 
             this.resetWorkToPeson(names, opinion, function(){
-                this.workAction.getJobByWork(function(workJson){
+                this.workAction.loadWork(function(workJson){
                     this.fireEvent("afterReset");
                     if (this.app && this.app.fireEvent) this.app.fireEvent("afterReset");
                     this.addResetMessage(workJson.data);
@@ -1548,11 +1973,20 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
 
     },
     addAddSplitMessage: function(data){
-        var users = [];
-        data.taskList.each(function(task){
-            users.push(MWF.name.cn(task.person)+"("+MWF.name.cn(task.unit)+")");
-        }.bind(this));
-        var content = "<div><b>"+MWF.xApplication.process.Xform.LP.currentActivity+"<font style=\"color: #ea621f\">"+data.work.activityName+"</font>, "+MWF.xApplication.process.Xform.LP.nextUser+"<font style=\"color: #ea621f\">"+users.join(", ")+"</font></b></div>";
+        var content = "";
+        if (data && data.length){
+            data.each(function(work){
+                var users = [];
+                work.taskList.each(function(task){
+                    users.push(MWF.name.cn(task.person)+"("+MWF.name.cn(task.unit)+")");
+                }.bind(this));
+                content += "<div><b>"+MWF.xApplication.process.Xform.LP.nextActivity+"<font style=\"color: #ea621f\">"+work.activityName+"</font>, "+MWF.xApplication.process.Xform.LP.nextUser+"<font style=\"color: #ea621f\">"+users.join(", ")+"</font></b></div>";
+            }.bind(this));
+        }else{
+            content += MWF.xApplication.process.Xform.LP.workCompleted;
+        }
+
+        //var content = "<div><b>"+MWF.xApplication.process.Xform.LP.currentActivity+"<font style=\"color: #ea621f\">"+data.work.activityName+"</font>, "+MWF.xApplication.process.Xform.LP.nextUser+"<font style=\"color: #ea621f\">"+users.join(", ")+"</font></b></div>";
 
         var msg = {
             "subject": MWF.xApplication.process.Xform.LP.addSplitWork,
@@ -1578,52 +2012,97 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
 
     retractWork: function(e, ev){
         var _self = this;
-        var p = MWF.getCenterPosition(this.app.content, 300, 150);
-        var event = {
-            "event":{
-                "x": p.x,
-                "y": p.y-200,
-                "clientX": p.x,
-                "clientY": p.y-200
-            }
-        };
-        this.app.confirm("infor", event, MWF.xApplication.process.Xform.LP.retractTitle, MWF.xApplication.process.Xform.LP.retractText, 300, 120, function(){
-            _self.app.content.mask({
-                "style": {
-                    "background-color": "#999",
-                    "opacity": 0.6
-                }
-            });
+	    if (this.json.mode=="Mobile"){
+            if (window.confirm(MWF.xApplication.process.Xform.LP.retractText)){
+                _self.app.content.mask({
+                    "style": {
+                        "background-color": "#999",
+                        "opacity": 0.6
+                    }
+                });
 
-            MWF.require("MWF.widget.Mask", function(){
-                _self.mask = new MWF.widget.Mask({"style": "desktop", "zIndex": 50000});
-                _self.mask.loadNode(_self.app.content);
+                MWF.require("MWF.widget.Mask", function(){
+                    _self.mask = new MWF.widget.Mask({"style": "desktop", "zIndex": 50000});
+                    _self.mask.loadNode(_self.app.content);
 
-                _self.fireEvent("beforeRetract");
-                if (_self.app && _self.app.fireEvent) _self.app.fireEvent("beforeRetract");
+                    _self.fireEvent("beforeRetract");
+                    if (_self.app && _self.app.fireEvent) _self.app.fireEvent("beforeRetract");
 
-                _self.doRetractWork(function(){
-                    _self.workAction.getJobByWork(function(workJson){
+                    _self.doRetractWork(function(){
+                        //_self.workAction.getJobByWork(function(workJson){
                         _self.fireEvent("afterRetract");
                         if (_self.app && _self.app.fireEvent) _self.app.fireEvent("afterRetract");
                         _self.app.notice(MWF.xApplication.process.Xform.LP.workRetract, "success");
                         _self.app.content.unmask();
-                        _self.app.reload(workJson.data);
-                    }, null, _self.businessData.work.id);
-                    this.close();
-                    if (_self.mask) {_self.mask.hide(); _self.mask = null;}
-                }.bind(this));
-            }.bind(this), function(xhr, text, error){
-                var errorText = error+":"+text;
-                if (xhr) errorText = xhr.responseText;
-                _self.app.notice("request json error: "+errorText, "error", dlg.node);
-                if (_self.mask) {_self.mask.hide(); _self.mask = null;}
-            });
+                        _self.app.reload();
+                        //}, null, _self.businessData.work.id);
+                        // var uri = new URI(window.location.href);
+                        // var redirectlink = uri.getData("redirectlink");
+                        // if( redirectlink ){
+                        //     window.location = decodeURIComponent(redirectlink);
+                        // }else{
+                        //     window.location = "appMobile.html?app=process.TaskCenter";
+                        // }
 
-            //this.close();
-        }, function(){
-            this.close();
-        });
+                        if (_self.mask) {_self.mask.hide(); _self.mask = null;}
+                    }.bind(this), function(xhr, text, error){
+                        _self.app.content.unmask();
+                        var errorText = error+":"+text;
+                        if (xhr) errorText = xhr.responseText;
+                        _self.app.notice("request json error: "+errorText, "error");
+                        if (_self.mask) {_self.mask.hide(); _self.mask = null;}
+                    });
+                }.bind(this));
+            }
+        }else{
+            var p = MWF.getCenterPosition(this.app.content, 300, 150);
+            var event = {
+                "event":{
+                    "x": p.x,
+                    "y": p.y-200,
+                    "clientX": p.x,
+                    "clientY": p.y-200
+                }
+            };
+            this.app.confirm("infor", event, MWF.xApplication.process.Xform.LP.retractTitle, MWF.xApplication.process.Xform.LP.retractText, 300, 120, function(){
+                _self.app.content.mask({
+                    "style": {
+                        "background-color": "#999",
+                        "opacity": 0.6
+                    }
+                });
+
+                MWF.require("MWF.widget.Mask", function(){
+                    _self.mask = new MWF.widget.Mask({"style": "desktop", "zIndex": 50000});
+                    _self.mask.loadNode(_self.app.content);
+
+                    _self.fireEvent("beforeRetract");
+                    if (_self.app && _self.app.fireEvent) _self.app.fireEvent("beforeRetract");
+
+                    _self.doRetractWork(function(){
+                        //_self.workAction.getJobByWork(function(workJson){
+                        _self.fireEvent("afterRetract");
+                        if (_self.app && _self.app.fireEvent) _self.app.fireEvent("afterRetract");
+                        _self.app.notice(MWF.xApplication.process.Xform.LP.workRetract, "success");
+                        _self.app.content.unmask();
+                        _self.app.reload();
+                        //}, null, _self.businessData.work.id);
+                        this.close();
+                        if (_self.mask) {_self.mask.hide(); _self.mask = null;}
+                    }.bind(this), function(xhr, text, error){
+                        _self.app.content.unmask();
+                        var errorText = error+":"+text;
+                        if (xhr) errorText = xhr.responseText;
+                        _self.app.notice("request json error: "+errorText, "error");
+                        if (_self.mask) {_self.mask.hide(); _self.mask = null;}
+                    });
+                }.bind(this));
+
+                //this.close();
+            }, function(){
+                this.close();
+            },null, null, this.json.confirmStyle);
+        }
     },
     doRetractWork: function(success, failure){
         if (this.businessData.control["allowRetract"]){
@@ -1658,13 +2137,13 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
         }
         MWF.require("MWF.xDesktop.Dialog", function(){
             var width = 480;
-            var height = 160;
+            var height = 200;
             var p = MWF.getCenterPosition(this.app.content, width, height);
 
             var _self = this;
             var dlg = new MWF.xDesktop.Dialog({
                 "title": this.app.lp.reroute,
-                "style": "work",
+                "style": this.json.dialogStyle || "user", //|| "work",
                 "top": p.y-100,
                 "left": p.x,
                 "fromTop": p.y-100,
@@ -1674,13 +2153,27 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
                 "url": this.app.path+"reroute.html",
                 "container": this.app.content,
                 "isClose": true,
+                "buttonList": [
+                    {
+                        "type" : "ok",
+                        "text": MWF.LP.process.button.ok,
+                        "action": function(d, e){
+                            _self.doRerouteWork(dlg);
+                        }.bind(this)
+                    },
+                    {
+                        "type" : "cancel",
+                        "text": MWF.LP.process.button.cancel,
+                        "action": function(){dlg.close();}
+                    }
+                ],
                 "onPostShow": function(){
-                    $("rerouteWork_okButton").addEvent("click", function(){
-                        _self.doRerouteWork(this);
-                    }.bind(this));
-                    $("rerouteWork_cancelButton").addEvent("click", function(){
-                        this.close();
-                    }.bind(this));
+                    //$("rerouteWork_okButton").addEvent("click", function(){
+                    //    _self.doRerouteWork(this);
+                    //}.bind(this));
+                    //$("rerouteWork_cancelButton").addEvent("click", function(){
+                    //    this.close();
+                    //}.bind(this));
 
                     var select = $("rerouteWork_selectActivity");
                     _self.workAction.getRerouteTo(_self.businessData.work.process, function(json){
@@ -1804,7 +2297,7 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
             if (this.app && this.app.fireEvent) this.app.fireEvent("afterRetract");
 
             this.rerouteWorkToActivity(activity, type, opinion, function(){
-                this.workAction.getJobByWork(function(workJson){
+                this.workAction.loadWork(function(workJson){
                     this.fireEvent("afterReroute");
                     if (this.app && this.app.fireEvent) this.app.fireEvent("afterReroute");
                     this.addRerouteMessage(workJson.data);
@@ -1857,57 +2350,91 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
 
     deleteWork: function(){
         var _self = this;
-        var p = MWF.getCenterPosition(this.app.content, 380, 150);
-        var event = {
-            "event":{
-                "x": p.x,
-                "y": p.y-200,
-                "clientX": p.x,
-                "clientY": p.y-200
-            }
-        };
-        this.app.confirm("infor", event, MWF.xApplication.process.Xform.LP.deleteWorkTitle, MWF.xApplication.process.Xform.LP.deleteWorkText, 380, 120, function(){
-            // _self.app.content.mask({
-            //    "style": {
-            //        "background-color": "#999",
-            //        "opacity": 0.6
-            //    }
-            // });
+        if (this.json.mode === "Mobile"){
+            if (window.confirm(MWF.xApplication.process.Xform.LP.deleteWorkText.text)){
+                MWF.require("MWF.widget.Mask", function(){
+                    _self.mask = new MWF.widget.Mask({"style": "desktop", "zIndex": 50000});
+                    _self.mask.loadNode(_self.app.content);
 
+                    _self.fireEvent("beforeDelete");
+                    if (_self.app && _self.app.fireEvent) _self.app.fireEvent("beforeDelete");
 
-            MWF.require("MWF.widget.Mask", function(){
-                _self.mask = new MWF.widget.Mask({"style": "desktop", "zIndex": 50000});
-                _self.mask.loadNode(_self.app.content);
-
-                _self.fireEvent("beforeDelete");
-                if (_self.app && _self.app.fireEvent) _self.app.fireEvent("beforeDelete");
-
-                _self.doDeleteWork(function(){
-                    _self.fireEvent("s");
-                    if (_self.app && _self.app.fireEvent) _self.app.fireEvent("afterDelete");
-                    _self.app.notice(MWF.xApplication.process.Xform.LP.workDelete+": “"+_self.businessData.work.title+"”", "success");
-                    _self.app.close();
-                    this.close();
-                    if (_self.mask) {_self.mask.hide(); _self.mask = null;}
-                }.bind(this),function(xhr, text, error){
-                    var errorText = error+":"+text;
-                    if (xhr) errorText = xhr.responseText;
-                    _self.app.notice("request json error: "+errorText, "error", dlg.node);
-                    if (_self.mask) {_self.mask.hide(); _self.mask = null;}
+                    _self.doDeleteWork(function(){
+                        _self.fireEvent("afterDelete");
+                        if (_self.app && _self.app.fireEvent) _self.app.fireEvent("afterDelete");
+                        _self.app.notice(MWF.xApplication.process.Xform.LP.workDelete+": “"+_self.businessData.work.title+"”", "success");
+                        _self.app.close();
+                        //if (layout.mobile){
+                        var uri = new URI(window.location.href);
+                        var redirectlink = uri.getData("redirectlink");
+                        if( redirectlink ){
+                            window.location = decodeURIComponent(redirectlink);
+                        }else{
+                            window.location = "appMobile.html?app=process.TaskCenter";
+                        }
+                        //}
+                        if (_self.mask) {_self.mask.hide(); _self.mask = null;}
+                    }.bind(this),function(xhr, text, error){
+                        var errorText = error+":"+text;
+                        if (xhr) errorText = xhr.responseText;
+                        _self.app.notice("request json error: "+errorText, "error", dlg.node);
+                        if (_self.mask) {_self.mask.hide(); _self.mask = null;}
+                    }.bind(this));
                 }.bind(this));
-            }.bind(this));
+            }
+        }else{
+            var p = MWF.getCenterPosition(this.app.content, 380, 150);
+            var event = {
+                "event":{
+                    "x": p.x,
+                    "y": p.y-200,
+                    "clientX": p.x,
+                    "clientY": p.y-200
+                }
+            };
+            this.app.confirm("infor", event, MWF.xApplication.process.Xform.LP.deleteWorkTitle, MWF.xApplication.process.Xform.LP.deleteWorkText, 380, 120, function(){
+                // _self.app.content.mask({
+                //    "style": {
+                //        "background-color": "#999",
+                //        "opacity": 0.6
+                //    }
+                // });
+
+
+                MWF.require("MWF.widget.Mask", function(){
+                    _self.mask = new MWF.widget.Mask({"style": "desktop", "zIndex": 50000});
+                    _self.mask.loadNode(_self.app.content);
+
+                    _self.fireEvent("beforeDelete");
+                    if (_self.app && _self.app.fireEvent) _self.app.fireEvent("beforeDelete");
+
+                    _self.doDeleteWork(function(){
+                        _self.fireEvent("s");
+                        if (_self.app && _self.app.fireEvent) _self.app.fireEvent("afterDelete");
+                        _self.app.notice(MWF.xApplication.process.Xform.LP.workDelete+": “"+_self.businessData.work.title+"”", "success");
+                        _self.app.close();
+                        this.close();
+                        if (_self.mask) {_self.mask.hide(); _self.mask = null;}
+                    }.bind(this),function(xhr, text, error){
+                        var errorText = error+":"+text;
+                        if (xhr) errorText = xhr.responseText;
+                        _self.app.notice("request json error: "+errorText, "error", dlg.node);
+                        if (_self.mask) {_self.mask.hide(); _self.mask = null;}
+                    }.bind(this));
+                }.bind(this));
 
 
 
-            //_self.workAction.deleteWork(function(json){
-            //    _self.app.notice(MWF.xApplication.process.Xform.LP.workDelete+": “"+_self.businessData.work.title+"”", "success");
-            //    _self.app.close();
-            //    this.close();
-            //}.bind(this), null, _self.businessData.work.id);
-            //this.close();
-        }, function(){
-            this.close();
-        }, null, this.app.content);
+                //_self.workAction.deleteWork(function(json){
+                //    _self.app.notice(MWF.xApplication.process.Xform.LP.workDelete+": “"+_self.businessData.work.title+"”", "success");
+                //    _self.app.close();
+                //    this.close();
+                //}.bind(this), null, _self.businessData.work.id);
+                //this.close();
+            }, function(){
+                this.close();
+            }, null, this.app.content, this.json.confirmStyle);
+        }
     },
     doDeleteWork: function(success, failure){
         if (this.businessData.control["allowDelete"]){
@@ -1966,7 +2493,7 @@ MWF.xApplication.process.Xform.Form = MWF.APPForm =  new Class({
             this.close();
         }, function(){
             this.close();
-        }, null, this.app.content);
+        }, null, this.app.content, this.json.confirmStyle);
     },
     openWindow: function(form, app){
         //var application = app || (this.businessData.work) ? this.businessData.work.application : this.businessData.workCompleted.application;

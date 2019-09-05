@@ -4,7 +4,7 @@ MWF.xApplication.process.Xform.DatagridPC = new Class({
 	Extends: MWF.APP$Module,
 	isEdit: false,
     options: {
-        "moduleEvents": ["completeLineEdit", "addLine", "deleteLine", "afterDeleteLine","editLine"]
+        "moduleEvents": ["queryLoad","postLoad","load","completeLineEdit", "addLine", "deleteLine", "afterDeleteLine","editLine"]
     },
 
     initialize: function(node, json, form, options){
@@ -39,6 +39,7 @@ MWF.xApplication.process.Xform.DatagridPC = new Class({
             this._loadDatagridDataModules();
             this._getDatagridEditorTr();
 			this._loadReadDatagrid();
+			if(this.editorTr)this.editorTr.setStyle("display", "none");
 		}
 	},
 	_loadStyles: function(){
@@ -192,11 +193,17 @@ MWF.xApplication.process.Xform.DatagridPC = new Class({
 			this._createMoveLineAction(cell);
 		}else{
 			cell.set("MWFId", id);
-			cell.set("text", text);
+
+			var module = this.editModules[idx-1];
+			if( module && module.json.type == "ImageClipper" ){
+				this._createImage( cell, module, text )
+			}else{
+				cell.set("text", text);
+			}
 			cell.addEvent("click", function(e){
 				this._editLine(e.target);
 			}.bind(this));
-		};
+		}
 		var json = this.form._getDomjson(cell);
 
 		if (json){
@@ -301,6 +308,43 @@ MWF.xApplication.process.Xform.DatagridPC = new Class({
         return flag;
     },
 
+	_cancelLineEdit: function(){
+		this.isEdit = false;
+
+		var flag = true;
+
+		var griddata = {};
+		var newTr = null;
+
+		if (this.currentEditLine){
+			newTr = this.currentEditLine;
+			griddata = this.currentEditLine.retrieve("data");
+		}else{
+			newTr = new Element("tr").inject(this.editorTr, "before");
+			griddata = {};
+		}
+
+		if (flag){
+			newTr.destroy();
+		}
+		this.currentEditLine = null;
+
+		this._editorTrGoBack();
+
+		// if (this.json.contentStyles){
+		// 	var tds = newTr.getElements("td");
+		// 	tds.setStyles(this.json.contentStyles);
+		// }
+		// if (this.json.actionStyles){
+		// 	newTr.getFirst().setStyles(this.json.actionStyles);
+		// }
+
+		// this._loadBorderStyle();
+		// this._loadZebraStyle();
+		// this._loadSequence();
+
+		this.fireEvent("cancelLineEdit");
+	},
 	_completeLineEdit: function(){
 		//this.currentEditLine.getElemets(td);
         if (!this.editValidation()){
@@ -346,7 +390,11 @@ MWF.xApplication.process.Xform.DatagridPC = new Class({
                 }
 
 				if (cell){
-					cell.set("text", data.text.join(", "));
+					if( module.json.type == "ImageClipper" ){
+						this._createImage( cell, module, data.text );
+					}else{
+						cell.set("text", data.text.join(", "));
+					}
 				}else{
 					this._createNewEditTd(newTr, idx, editorTds[idx].get("id"), data.text.join(", "), titleThs.length-1);
 				}
@@ -387,6 +435,23 @@ MWF.xApplication.process.Xform.DatagridPC = new Class({
         this.fireEvent("completeLineEdit");
 
         return true;
+	},
+	_createImage : function( cell, module, data ){
+		cell.empty();
+		if( !data )return;
+		var img = new Element("img",{
+			src : MWF.xDesktop.getImageSrc( data )
+		}).inject( cell, "top" );
+		if( module.json.clipperType == "size" ){
+			var width = module.json.imageWidth;
+			var height = module.json.imageHeight;
+			if (width && height) {
+				img.setStyles({
+					width: width + "px",
+					height: height + "px"
+				})
+			}
+		}
 	},
 	_editorTrGoBack: function(){
 		this.editorTr.setStyle("display", "none");
@@ -442,7 +507,7 @@ MWF.xApplication.process.Xform.DatagridPC = new Class({
 				var color = currentTr.retrieve("bgcolor");
 				currentTr.tween("background", color);
 				this.close();
-			}, null);
+			}, null, null, this.form.json.confirmStyle);
 		};
         this.validationMode();
 	},
@@ -573,7 +638,7 @@ MWF.xApplication.process.Xform.DatagridPC = new Class({
 		
 		var lastTrs = this.table.getElements("tr");
 		var lastTr = lastTrs[lastTrs.length-1];
-		var tds = lastTr.getElements("td");
+		//var tds = lastTr.getElements("td");
 
         if (this.gridData.data){
             this.gridData.data.each(function(data, idx){
@@ -582,15 +647,21 @@ MWF.xApplication.process.Xform.DatagridPC = new Class({
 
                 titleHeaders.each(function(th, index){
                     var cell = tr.insertCell(index);
-                    cell.set("MWFId", tds[index].get("id"));
+                    // cell.set("MWFId", tds[index].get("id"));
                     var cellData = data[th.get("id")];
                     if (cellData){
 
                         for (key in cellData){
                         	var v = cellData[key];
 
-                            var text = this._getValueText(index, v);
-                            cell.set("text", text);
+							var module = this.editModules[index];
+							if( module && module.json.type == "ImageClipper" ){
+								this._createImage( cell, module, v )
+							}else{
+								var text = this._getValueText(index, v);
+								cell.set("text", text);
+							}
+
 
 							// if (typeOf(v)==="array"){
 							// 	var textArray = [];
@@ -619,7 +690,7 @@ MWF.xApplication.process.Xform.DatagridPC = new Class({
         }
 
 
-        lastTr.destroy();
+        //lastTr.destroy();
 
         this._loadTotal();
      //   this._loadSequenceRead();

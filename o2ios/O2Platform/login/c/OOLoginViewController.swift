@@ -9,7 +9,6 @@
 import UIKit
 import ReactiveCocoa
 import ReactiveSwift
-import Whisper
 import CocoaLumberjack
 import AVFoundation
 import O2OA_Auth_SDK
@@ -30,25 +29,28 @@ class OOLoginViewController: OOBaseViewController {
     
     @IBOutlet weak var rebindBtn: UIButton!
     
-    @IBOutlet weak var faceRecgnizeLoginBtn: UIButton!
+    @IBOutlet weak var bioAuthLoginBtn: UIButton!
     
-    @IBAction func faceRecgnizeAction(_ sender: UIButton) {
-        DDLogDebug("点了，使用人脸识别登录")
-        let status = AVCaptureDevice.authorizationStatus(for: .video)
-        if status == .denied || status == .restricted {
-            ProgressHUD.showError("没有摄像头权限，请先开启！")
-        }else {
-            let faceVC = OOFaceRecognizeLoginViewController()
-            let nav = ZLNavigationController(rootViewController: faceVC)
-            nav.modalTransitionStyle = .flipHorizontal
-            self.present(nav, animated: true, completion: nil)
-        }
-        
-    }
+//    @IBOutlet weak var faceRecgnizeLoginBtn: UIButton!
+    
+//    @IBAction func faceRecgnizeAction(_ sender: UIButton) {
+//        DDLogDebug("点了，使用人脸识别登录")
+//        let status = AVCaptureDevice.authorizationStatus(for: .video)
+//        if status == .denied || status == .restricted {
+//            ProgressHUD.showError("没有摄像头权限，请先开启！")
+//        }else {
+//            let faceVC = OOFaceRecognizeLoginViewController()
+//            let nav = ZLNavigationController(rootViewController: faceVC)
+//            nav.modalTransitionStyle = .flipHorizontal
+//            self.present(nav, animated: true, completion: nil)
+//        }
+//
+//    }
     var viewModel:OOLoginViewModel = {
        return OOLoginViewModel()
     }()
     
+    var notUseBioAuth = false
     
     
     override func viewDidLoad() {
@@ -56,6 +58,23 @@ class OOLoginViewController: OOBaseViewController {
         //delegate
         passwordTextField.buttonDelegate = self
         setupUI()
+        
+    }
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        let bioAuthUser = AppConfigSettings.shared.bioAuthUser
+        if !notUseBioAuth && !bioAuthUser.isEmpty {
+            DDLogDebug("已开启生物识别认证")
+            self.gotoBioAuthLogin()
+        }
+        self.bioAuthLoginBtn.isHidden = bioAuthUser.isEmpty
+    }
+    
+    @IBAction func unwindFromBioAuthLogin(_ unwindSegue: UIStoryboardSegue) {
+        if unwindSegue.identifier == "goBack2Login" {
+            DDLogDebug("从生物识别认证页面返回的，所以不需要再跳转了。。。。。。")
+            notUseBioAuth = true
+        }
     }
     
     private func setupUI(){
@@ -67,17 +86,22 @@ class OOLoginViewController: OOBaseViewController {
         let effectView = UIVisualEffectView(effect: blur)
         effectView.frame = backImageView.frame
         backImageView.addSubview(effectView)
+        // 皮肤
+        let baseColor = O2ThemeManager.color(for: "Base.base_color")!
+        self.passwordTextField.themeUpdate(buttonTitleColor: baseColor)
+        self.passwordTextField.themeUpdate(leftImage: O2ThemeManager.image(for: "Icon.icon_verification_code_nor"), leftLightImage: O2ThemeManager.image(for: "Icon.icon_verification_code_sel"), lineColor: baseColor.alpha(0.4), lineLightColor: baseColor)
+        self.passwordField.themeUpdate(leftImage: O2ThemeManager.image(for: "Icon.icon_verification_code_nor"), leftLightImage: O2ThemeManager.image(for: "Icon.icon_verification_code_sel"), lineColor: baseColor.alpha(0.4), lineLightColor: baseColor)
+        self.userNameTextField.themeUpdate(leftImage: O2ThemeManager.image(for: "Icon.icon_user_nor"), leftLightImage: O2ThemeManager.image(for: "Icon.icon_user_sel"), lineColor: baseColor.alpha(0.4), lineLightColor: baseColor)
         
+        self.passwordTextField.keyboardType = .numberPad
+        self.userNameTextField.returnKeyType = .next
+        self.userNameTextField.returnNextDelegate = self
         
         if O2IsConnect2Collect {
             self.rebindBtn.isHidden = false
             self.passwordTextField.isHidden = false //验证码
             self.passwordField.isHidden = true //密码
-            if let host = O2AuthSDK.shared.bindUnit()?.centerHost, (host == "dev.o2oa.io" || host == "dev.o2server.io" || host == "dev.o2oa.net") {
-                self.faceRecgnizeLoginBtn.isHidden = false
-            }else {
-                self.faceRecgnizeLoginBtn.isHidden = true
-            }
+            
         }else {
             self.rebindBtn.isHidden = true
             self.passwordTextField.isHidden = true
@@ -89,14 +113,25 @@ class OOLoginViewController: OOBaseViewController {
         self.passwordTextField.downButton!.reactive.isEnabled <~ viewModel.passwordIsValid
         self.submitButton.reactive.isEnabled <~ viewModel.submitButtionIsValid
         self.submitButton.reactive.backgroundColor <~ viewModel.submitButtonCurrentColor
-        self.faceRecgnizeLoginBtn.reactive.isEnabled <~ viewModel.faceRecognizeLoginButtonisValid
         if O2IsConnect2Collect {
             viewModel.loginControlIsValid(self.userNameTextField, self.passwordTextField, false)
         }else {
             viewModel.loginControlIsValid(self.userNameTextField, self.passwordField, true)
         }
         
-        viewModel.faceRecognizeValidate()
+//        viewModel.faceRecognizeValidate()
+        
+        let bioType = O2BioLocalAuth.shared.checkBiometryType()
+        switch bioType {
+        case O2BiometryType.FaceID:
+            self.bioAuthLoginBtn.setTitle("人脸识别登录", for: .normal)
+            break
+        case O2BiometryType.TouchID:
+            self.bioAuthLoginBtn.setTitle("指纹识别登录", for: .normal)
+            break
+        default:
+            break
+        }
         
         
         //版权信息
@@ -111,7 +146,7 @@ class OOLoginViewController: OOBaseViewController {
     }
     
     @IBAction func btnReBindNodeAction(_ sender: UIButton) {
-        showAlert(title: "重新绑定", message: "重新绑定到新的服务节点，原节点信息将被清空，确认吗？", okHandler: { (ok) in
+        self.showSystemAlert(title: "重新绑定", message: "重新绑定到新的服务节点，原节点信息将被清空，确认吗？") { (action) in
             O2AuthSDK.shared.clearAllInformationBeforeReBind(callback: { (result, msg) in
                 DDLogInfo("清空登录和绑定信息，result:\(result), msg:\(msg ?? "")")
                 OOAppsInfoDB.shareInstance.removeAll()
@@ -119,13 +154,13 @@ class OOLoginViewController: OOBaseViewController {
                     self.forwardDestVC("login", nil)
                 }
             })
-            
-        }) { (cancel) in
-            
         }
         
     }
     
+    @IBAction func bioAuthLoginBtnAction(_ sender: UIButton) {
+        self.gotoBioAuthLogin()
+    }
     
     @IBAction func btnLogin(_ sender: OOBaseUIButton) {
         self.view.endEditing(true)
@@ -168,12 +203,17 @@ class OOLoginViewController: OOBaseViewController {
     
     private func gotoMain() {
         //跳转到主页
-        let destVC = OOTabBarController.genernateVC()
+        let destVC = O2MainController.genernateVC()
         destVC.selectedIndex = 2 // 首页选中 TODO 图标不亮。。。。。
         UIApplication.shared.keyWindow?.rootViewController = destVC
         UIApplication.shared.keyWindow?.makeKeyAndVisible()
     }
 
+    private func gotoBioAuthLogin() {
+        DispatchQueue.main.async {
+            self.performSegue(withIdentifier: "showBioAuthLogin", sender: nil)
+        }
+    }
 }
 
 extension OOLoginViewController:OOUIDownButtonTextFieldDelegate {
@@ -186,9 +226,25 @@ extension OOLoginViewController:OOUIDownButtonTextFieldDelegate {
         O2AuthSDK.shared.sendLoginSMS(mobile: credential) { (result, msg) in
             if !result {
                 DDLogError((msg ?? ""))
+                self.showError(title: "验证码发送失败！")
             }
         }
         
     }
+}
+
+extension OOLoginViewController: OOUITextFieldReturnNextDelegate {
+    func next() {
+        if self.userNameTextField.isFirstResponder {
+            if self.passwordField.isHidden == false {
+                self.passwordField.becomeFirstResponder()
+            }
+            if self.passwordTextField.isHidden == false {
+                self.passwordTextField.becomeFirstResponder()
+            }
+        }
+    }
+    
+    
 }
 

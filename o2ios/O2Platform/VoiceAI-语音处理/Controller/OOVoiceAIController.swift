@@ -29,7 +29,7 @@ class OOVoiceAIController: UIViewController {
     var voice: AVSpeechSynthesisVoice!
     
     // 语音识别
-    let recognizeBus = 1024
+    let recognizeBus = 0
     var recognizer: SFSpeechRecognizer!
     var recAudioEngine: AVAudioEngine!
     var recAudioInputNode: AVAudioInputNode!
@@ -189,7 +189,8 @@ class OOVoiceAIController: UIViewController {
         DDLogInfo("speak:\(txt)")
         do {
             let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.overrideOutputAudioPort(.speaker)
+//            try audioSession.overrideOutputAudioPort(.speaker)
+            try audioSession.setCategory(.ambient, mode: .default)
 //            let route = audioSession.currentRoute
 //            route.outputs.forEach { (port) in
 //                DDLogInfo("name:\(port.portName)")
@@ -288,8 +289,10 @@ extension OOVoiceAIController: SFSpeechRecognitionTaskDelegate {
         DDLogInfo("finish recognize result...........")
         let best = recognitionResult.bestTranscription.formattedString
         DDLogInfo("最佳：\(best)")
+        let removePunctuation = best.trimmingCharacters(in: CharacterSet.punctuationCharacters)
+        DDLogInfo("最佳去掉标点：\(removePunctuation)")
         if !self.closeVC {
-            self.viewModel.command = best
+            self.viewModel.command = removePunctuation
             self.lastRecognizeTime = -1
         }
     }

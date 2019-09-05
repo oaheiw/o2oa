@@ -154,9 +154,13 @@ public class Describe {
 		if (null != wiClass) {
 			jaxrsMethod.setIns(this.jaxrsInField(wiClass));
 		} else {
-			/** 如果没有定义Wi对象,那么有可能使用的是jsonElement对象 */
-			if (ArrayUtils.contains(method.getParameterTypes(), JsonElement.class)) {
-				jaxrsMethod.setUseJsonElementParameter(true);
+			if (StringUtils.equals("POST", jaxrsMethod.getType()) || StringUtils.equals("PUT", jaxrsMethod.getType())) {
+				/** 如果没有定义Wi对象,那么有可能使用的是jsonElement对象 */
+				if (ArrayUtils.contains(method.getParameterTypes(), JsonElement.class)) {
+					jaxrsMethod.setUseJsonElementParameter(true);
+				} else {
+					jaxrsMethod.setUseStringParameter(true);
+				}
 			}
 		}
 		Consumes consumes = method.getAnnotation(Consumes.class);
@@ -333,7 +337,12 @@ public class Describe {
 						jaxrsField.setIsBaseType(true);
 					}
 				} else {
-					jaxrsField.setIsCollection(false);
+					//O2LEE，String[]未被判断为collection导致组织的JSON格式不符合wrapIn要求
+					if( StringUtils.equalsAnyIgnoreCase( "String[]", jaxrsField.getType() )) {
+						jaxrsField.setIsCollection(true);
+					}else {
+						jaxrsField.setIsCollection(false);
+					}
 					if (StringUtils.startsWithAny(jaxrsField.getType(), "String", "Boolean", "Date", "Integer",
 							"Double", "Long", "Float")) {
 						jaxrsField.setIsBaseType(true);
@@ -481,6 +490,7 @@ public class Describe {
 		private String contentType;
 		private String resultContentType;
 		private Boolean useJsonElementParameter = false;
+		private Boolean useStringParameter = false;
 		private List<JaxrsPathParameter> pathParameters = new ArrayList<>();
 		private List<JaxrsFormParameter> formParameters = new ArrayList<>();
 		private List<JaxrsQueryParameter> queryParameters = new ArrayList<>();
@@ -589,6 +599,14 @@ public class Describe {
 
 		public void setResultContentType(String resultContentType) {
 			this.resultContentType = resultContentType;
+		}
+
+		public Boolean getUseStringParameter() {
+			return useStringParameter;
+		}
+
+		public void setUseStringParameter(Boolean useStringParameter) {
+			this.useStringParameter = useStringParameter;
 		}
 
 	}

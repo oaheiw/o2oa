@@ -12,9 +12,7 @@ import AlamofireImage
 import AlamofireObjectMapper
 import SwiftyJSON
 import ObjectMapper
-
 import EZSwiftExtensions
-import swiftScan
 import CocoaLumberjack
 import MBProgressHUD
 import WebKit
@@ -22,6 +20,7 @@ import WebKit
 class MainTaskSecondViewController: UIViewController {
     
     fileprivate static let PAGE_SIZE = 20
+    
     
     @IBOutlet weak var tableViewTopConstraint: NSLayoutConstraint!
     @IBOutlet weak var tableView: UITableView!
@@ -147,7 +146,7 @@ class MainTaskSecondViewController: UIViewController {
     
     //初始化分类显示
     private func initSegumentControl() -> SegmentedControl{
-        let kLivelyBlueColor = UIColor(red: 251 / 255, green: 71 / 255, blue: 71/255, alpha: 1)
+        
         //返回一个分类头部
         let titleStrings = ["信息中心", "办公中心"]
         let titles: [NSAttributedString] = {
@@ -160,7 +159,7 @@ class MainTaskSecondViewController: UIViewController {
             return titles
         }()
         let selectedTitles: [NSAttributedString] = {
-            let attributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16), NSAttributedString.Key.foregroundColor: kLivelyBlueColor]
+            let attributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16), NSAttributedString.Key.foregroundColor: base_color]
             var selectedTitles = [NSAttributedString]()
             for titleString in titleStrings {
                 let selectedTitle = NSAttributedString(string: titleString, attributes: attributes)
@@ -173,7 +172,7 @@ class MainTaskSecondViewController: UIViewController {
         segmentedControl.backgroundColor = UIColor.white
         segmentedControl.autoresizingMask = [.flexibleRightMargin, .flexibleWidth]
         segmentedControl.selectionIndicatorStyle = .bottom
-        segmentedControl.selectionIndicatorColor = kLivelyBlueColor
+        segmentedControl.selectionIndicatorColor = base_color
         segmentedControl.selectionIndicatorHeight = 0.5
         segmentedControl.segmentWidth = (UIScreen.main.bounds.width - 100) / 2
         //segmentedControl.frame.origin.y = 64
@@ -184,23 +183,18 @@ class MainTaskSecondViewController: UIViewController {
     
     //开始扫描
     @objc private func startScanAction(_ sender:AnyObject?)  {
-        if let scanVC = ScanHelper.initScanViewController() {
-            self.pushVC(scanVC)
-        }else {
-            gotoApplicationSettings(alertMessage: "是否跳转到手机设置页面开启相机权限？")
-        }
+        ScanHelper.openScan(vc: self)
     }
     
     //开始显示新建页面
     @objc private func startFlowAction(_ sender:AnyObject?){
-        //self.navigationController?.navigationBar.isHidden = false
         self.performSegue(withIdentifier: "showAppCategorySegue", sender: nil)
     }
     
     //读取数据待办数据
     fileprivate func loadMainTodo(_ pageModel:CommonPageModel,_ isFirst:Bool = true){
         //pageModel.pageSize = MainTaskSecondViewController.PAGE_SIZE
-        ProgressHUD.show("加载中...", interaction: false)
+        self.showMessage(title: "加载中...")
         //ZoneHUD.showNormalHUD((self.navigationController?.view!)!)
         let url = AppDelegate.o2Collect.generateURLWithAppContextKey(TaskContext.taskContextKey, query: TaskContext.todoTaskListQuery, parameter: pageModel.toDictionary() as [String : AnyObject]?)
         if isFirst {
@@ -216,7 +210,7 @@ class MainTaskSecondViewController: UIViewController {
                     self.newTaskPageModel.setPageTotal(tTasks.count)
                     
                     //ZoneHUD.dismissNormalHUD()
-                    ProgressHUD.dismiss()
+                    self.dismissProgressHUD()
                     DispatchQueue.main.async {
                         self.tableView.beginUpdates()
                         self.tableView.reloadSections(IndexSet.init(integer: 1), with: .automatic)
@@ -226,7 +220,7 @@ class MainTaskSecondViewController: UIViewController {
                 //ProgressHUD.showSuccess("读取待办完成")
             case .failure(let err):
                 DispatchQueue.main.async {
-                    ProgressHUD.showSuccess("加载待办失败")
+                    self.showSuccess(title: "加载待办失败")
                     //ZoneHUD.showErrorHUD(errorText: "待办列表出错", 0.5)
                     DDLogError(err.localizedDescription)
                 }
@@ -258,7 +252,7 @@ class MainTaskSecondViewController: UIViewController {
     //读取最新公告
     fileprivate func loadNewPublish(_ pageModel:CommonPageModel,_ isFirst:Bool = true){
         //ZoneHUD.showNormalHUD((self.navigationController?.view!)!)
-        ProgressHUD.show("加载中...", interaction: false)
+        self.showMessage(title: "加载中...")
         let npURL = AppDelegate.o2Collect.generateURLWithAppContextKey(CMSContext.cmsContextKey, query: CMSContext.cmsCategoryDetailQuery, parameter: pageModel.toDictionary() as[String:AnyObject]?)
         if isFirst {
             self.newPublishInfos.removeAll()
@@ -278,7 +272,7 @@ class MainTaskSecondViewController: UIViewController {
                     }
                     DispatchQueue.main.async {
                         //ZoneHUD.dismissNormalHUD()
-                        ProgressHUD.dismiss()
+                        self.dismissProgressHUD()
                         self.tableView.beginUpdates()
                         self.tableView.reloadSections(IndexSet.init(integer: 1), with: .automatic)
                         self.tableView.endUpdates()
@@ -286,7 +280,7 @@ class MainTaskSecondViewController: UIViewController {
                 }else{
                     DispatchQueue.main.async {
                         //ZoneHUD.showErrorHUD(errorText: "新闻列表出错", 0.5)
-                        ProgressHUD.showError("新闻列表出错")
+                        self.showError(title: "新闻列表出错")
                         DDLogError(json.description)
                     }
                    
@@ -294,7 +288,7 @@ class MainTaskSecondViewController: UIViewController {
             //print(json)
             case .failure(let err):
                 DispatchQueue.main.async {
-                    ProgressHUD.showError("新闻列表出错")
+                    self.showError(title: "新闻列表出错")
                     //ZoneHUD.showErrorHUD(errorText: "新闻列表出错", 0.5)
                     DDLogError(err.localizedDescription)
                 }
@@ -527,19 +521,11 @@ extension MainTaskSecondViewController:NewMainAppTableViewCellDelegate{
             
         } else {
             if app.storyBoard! == "webview" {
-                DDLogDebug("open webview for : "+app.title!+" url: "+app.vcName!)
-                let webConfiguration = WKWebViewConfiguration()
-                let myURL = URL(string: app.vcName!)
-                let webView = WKWebView(frame: self.view.bounds, configuration: webConfiguration)
-                let myRequest = URLRequest(url: myURL!)
-                webView.load(myRequest)
-                self.view.addSubview(webView)
+                DDLogError("open webview for : "+app.title!+" url: "+app.vcName!)
             } else {
                 // 语音助手还没做
                 if app.appId == "o2ai" {
-                    DDLogInfo("语音助手还没做，，，，，，，，，，，，，，，，")
-                    self.showError(title: "语音助手正在开发中......")
-                    return
+                    app.storyBoard = "ai"
                 }
                 let story = O2AppUtil.apps.first { (appInfo) -> Bool in
                     return app.appId == appInfo.appId

@@ -1,14 +1,18 @@
 package net.zoneland.x.bpm.mobile.v1.zoneXBPM.app.o2.webview
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.KeyEvent
+import android.view.View
+import kotlinx.android.synthetic.main.snippet_appbarlayout_toolbar.*
 import net.zoneland.x.bpm.mobile.v1.zoneXBPM.R
 import net.zoneland.x.bpm.mobile.v1.zoneXBPM.app.base.BaseMVPActivity
 import net.zoneland.x.bpm.mobile.v1.zoneXBPM.app.o2.main.IndexPortalFragment
 import net.zoneland.x.bpm.mobile.v1.zoneXBPM.core.component.api.APIAddressHelper
 import net.zoneland.x.bpm.mobile.v1.zoneXBPM.utils.XLog
 import net.zoneland.x.bpm.mobile.v1.zoneXBPM.utils.XToast
+import net.zoneland.x.bpm.mobile.v1.zoneXBPM.utils.extension.gone
 
 class PortalWebViewActivity : BaseMVPActivity<PortalWebViewContract.View, PortalWebViewContract.Presenter>(), PortalWebViewContract.View  {
     override var mPresenter: PortalWebViewContract.Presenter = PortalWebViewPresenter()
@@ -54,6 +58,7 @@ class PortalWebViewActivity : BaseMVPActivity<PortalWebViewContract.View, Portal
                 }
             }
         }
+        toolbar?.visibility = View.GONE
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -66,8 +71,17 @@ class PortalWebViewActivity : BaseMVPActivity<PortalWebViewContract.View, Portal
         return super.onKeyDown(keyCode, event)
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        portalFragment?.onActivityResult(requestCode, resultCode, data)
+    }
+
     override fun finish() {
         super.finish()
         overridePendingTransition(R.anim.activity_scale_in, R.anim.activity_scale_out)
+    }
+
+    fun hideToolBar() {
+        app_bar_layout_snippet.gone()
     }
 }

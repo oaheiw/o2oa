@@ -134,11 +134,10 @@ public class Applications extends ConcurrentHashMap<String, CopyOnWriteArrayList
 
 	public ActionResponse postQuery(Boolean xdebugger, Application application, String uri, Object body)
 			throws Exception {
-		return CipherConnectionAction.post(xdebugger, application.getUrlRoot() + CipherConnectionAction.trim(uri),
-				body);
+		return CipherConnectionAction.post(xdebugger, application.getUrlRoot() + CipherConnectionAction.trim(uri), 	body);
 	}
 
-	public ActionResponse postQuery(String applicationName, String uri, String body) throws Exception {
+	public ActionResponse postQuery(String applicationName, String uri, Object body) throws Exception {
 		return this.postQuery(false, applicationName, uri, body);
 	}
 
@@ -231,17 +230,5 @@ public class Applications extends ConcurrentHashMap<String, CopyOnWriteArrayList
 				return "";
 			}
 		}).collect(Collectors.joining("/"));
-	}
-
-	public List<String> listContainEntity(String name) {
-		List<String> os = new ArrayList<>();
-		this.entrySet().stream().forEach(o -> {
-			if (!o.getValue().isEmpty()) {
-				if (o.getValue().get(0).getDependency().containerEntities.contains(name)) {
-					os.add(o.getKey());
-				}
-			}
-		});
-		return os;
 	}
 }

@@ -1,11 +1,8 @@
 package com.x.attendance.assemble.control.service;
 
-import com.x.attendance.entity.AttendanceAppealInfo;
-import com.x.collaboration.core.message.Collaboration;
-import com.x.collaboration.core.message.notification.AttendanceAppealAcceptMessage;
-import com.x.collaboration.core.message.notification.AttendanceAppealInviteMessage;
-import com.x.collaboration.core.message.notification.AttendanceAppealRejectMessage;
+import org.apache.commons.lang3.StringUtils;
 
+import com.x.attendance.entity.AttendanceAppealInfo;
 
 public class AttendanceNoticeService {
 
@@ -17,22 +14,23 @@ public class AttendanceNoticeService {
 	 * @param person
 	 * @throws Exception
 	 */
-	public void notifyAttendanceAppealAcceptMessage( AttendanceAppealInfo attendanceAppealInfo,
-			String person) throws Exception {
-		if( attendanceAppealInfo != null ){
+	public void notifyAttendanceAppealAcceptMessage(AttendanceAppealInfo attendanceAppealInfo, String person)
+			throws Exception {
+		if (attendanceAppealInfo != null) {
 			String targetName = attendanceAppealInfo.getEmpName();
-			String messageContent = "您好，[" + attendanceAppealInfo.getRecordDateString() + "]考勤结果的申诉已经通过审核。";
-			if( targetName != null && !targetName.isEmpty()){
-				String[] array = targetName.split( "," );
-				for(String name : array){
-					if( name != null && !name.trim().isEmpty()){
-						AttendanceAppealAcceptMessage message = new AttendanceAppealAcceptMessage( name, attendanceAppealInfo.getId(), attendanceAppealInfo.getDetailId(), messageContent );
-						Collaboration.send(message);
+//			String messageContent = "您好，[" + attendanceAppealInfo.getRecordDateString() + "]考勤结果的申诉已经通过审核。";
+			if (StringUtils.isNotEmpty( targetName )) {
+				String[] array = targetName.split(",");
+				for (String name : array) {
+					if ( StringUtils.isNotEmpty( name )) {
+						// @Todo
+//						AttendanceAppealAcceptMessage message = new AttendanceAppealAcceptMessage( name, attendanceAppealInfo.getId(), attendanceAppealInfo.getDetailId(), messageContent );
+//						Collaboration.send(message);
 					}
 				}
 			}
-		}else{
-			throw new Exception( "attendanceAppealInfo is null, can not send message!" );
+		} else {
+			throw new Exception("attendanceAppealInfo is null, can not send message!");
 		}
 	}
 
@@ -44,25 +42,26 @@ public class AttendanceNoticeService {
 	 * @param person
 	 * @throws Exception
 	 */
-	public void notifyAttendanceAppealRejectMessage( AttendanceAppealInfo attendanceAppealInfo,
-			String person) throws Exception {
-		if( attendanceAppealInfo != null ){
+	public void notifyAttendanceAppealRejectMessage(AttendanceAppealInfo attendanceAppealInfo, String person)
+			throws Exception {
+		if (attendanceAppealInfo != null) {
 			String targetName = attendanceAppealInfo.getEmpName();
-			String messageContent = "您好，[" + attendanceAppealInfo.getRecordDateString() + "]考勤结果的申诉未通过审核。";
-			if( targetName != null && !targetName.isEmpty()){
-				String[] array = targetName.split( "," );
-				for(String name : array){
-					if( name != null && !name.trim().isEmpty()){
-						AttendanceAppealRejectMessage message = new AttendanceAppealRejectMessage( name, attendanceAppealInfo.getId(), attendanceAppealInfo.getDetailId(), messageContent );
-						Collaboration.send(message);
+//			String messageContent = "您好，[" + attendanceAppealInfo.getRecordDateString() + "]考勤结果的申诉未通过审核。";
+			if ( StringUtils.isNotEmpty( targetName )) {
+				String[] array = targetName.split(",");
+				for (String name : array) {
+					if ( StringUtils.isNotEmpty( name )) {
+//						AttendanceAppealRejectMessage message = new AttendanceAppealRejectMessage(name,
+//								attendanceAppealInfo.getId(), attendanceAppealInfo.getDetailId(), messageContent);
+//						Collaboration.send(message);
 					}
 				}
 			}
-		}else{
-			throw new Exception( "attendanceAppealInfo is null, can not send message!" );
+		} else {
+			throw new Exception("attendanceAppealInfo is null, can not send message!");
 		}
 	}
-	
+
 	/**
 	 * 收到一份需要处理的申诉-处理人1
 	 * 
@@ -70,21 +69,22 @@ public class AttendanceNoticeService {
 	 * @param attendanceDetail
 	 * @throws Exception
 	 */
-	public void notifyAttendanceAppealProcessness1Message( AttendanceAppealInfo attendanceAppealInfo ) throws Exception {		
-		if( attendanceAppealInfo != null ){
+	public void notifyAttendanceAppealProcessness1Message(AttendanceAppealInfo attendanceAppealInfo) throws Exception {
+		if (attendanceAppealInfo != null) {
 			String targetName = attendanceAppealInfo.getCurrentProcessor();
-			String messageContent = "您收到了" + attendanceAppealInfo.getEmpName() + "的考勤结果申诉，申诉类型为[" + attendanceAppealInfo.getAppealReason() + "]，请您审核！";
-			if( targetName != null && !targetName.isEmpty()){
-				String[] array = targetName.split( "," );
-				for(String name : array){
-					if( name != null && !name.trim().isEmpty()){
-						AttendanceAppealInviteMessage message = new AttendanceAppealInviteMessage( name, attendanceAppealInfo.getId(), attendanceAppealInfo.getDetailId(), messageContent );
-						Collaboration.send(message);
+//			String messageContent = "您收到了" + attendanceAppealInfo.getEmpName() + "的考勤结果申诉，申诉类型为[" + attendanceAppealInfo.getAppealReason() + "]，请您审核！";
+			if ( StringUtils.isNotEmpty( targetName )) {
+				String[] array = targetName.split(",");
+				for (String name : array) {
+					if ( StringUtils.isNotEmpty( name )) {
+//						AttendanceAppealInviteMessage message = new AttendanceAppealInviteMessage(name,
+//								attendanceAppealInfo.getId(), attendanceAppealInfo.getDetailId(), messageContent);
+//						Collaboration.send(message);
 					}
 				}
 			}
-		}else{
-			throw new Exception( "attendanceAppealInfo is null, can not send message!" );
+		} else {
+			throw new Exception("attendanceAppealInfo is null, can not send message!");
 		}
 	}
 
@@ -95,22 +95,22 @@ public class AttendanceNoticeService {
 	 * @param attendanceDetail
 	 * @throws Exception
 	 */
-	public void notifyAttendanceAppealProcessness2Message( AttendanceAppealInfo attendanceAppealInfo)
-			throws Exception {
-		if( attendanceAppealInfo != null ){
+	public void notifyAttendanceAppealProcessness2Message(AttendanceAppealInfo attendanceAppealInfo) throws Exception {
+		if (attendanceAppealInfo != null) {
 			String targetName = attendanceAppealInfo.getCurrentProcessor();
-			String messageContent = "您收到了" + attendanceAppealInfo.getEmpName() + "的考勤结果申诉，申诉类型为[" + attendanceAppealInfo.getAppealReason() + "]，请您复核！";
-			if( targetName != null && !targetName.isEmpty()){
-				String[] array = targetName.split( "," );
-				for(String name : array){
-					if( name != null && !name.trim().isEmpty()){
-						AttendanceAppealInviteMessage message = new AttendanceAppealInviteMessage( name, attendanceAppealInfo.getId(), attendanceAppealInfo.getDetailId(), messageContent );
-						Collaboration.send(message);
+//			String messageContent = "您收到了" + attendanceAppealInfo.getEmpName() + "的考勤结果申诉，申诉类型为[" + attendanceAppealInfo.getAppealReason() + "]，请您复核！";
+			if ( StringUtils.isNotEmpty( targetName )) {
+				String[] array = targetName.split(",");
+				for (String name : array) {
+					if ( StringUtils.isNotEmpty( name )) {
+//						AttendanceAppealInviteMessage message = new AttendanceAppealInviteMessage(name,
+//								attendanceAppealInfo.getId(), attendanceAppealInfo.getDetailId(), messageContent);
+//						Collaboration.send(message);
 					}
 				}
 			}
-		}else{
-			throw new Exception( "attendanceAppealInfo is null, can not send message!" );
+		} else {
+			throw new Exception("attendanceAppealInfo is null, can not send message!");
 		}
 	}
 }

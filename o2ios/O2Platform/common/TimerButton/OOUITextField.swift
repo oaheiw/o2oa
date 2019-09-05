@@ -9,6 +9,10 @@
 import UIKit
 import SwiftValidator
 
+protocol OOUITextFieldReturnNextDelegate {
+    func next()
+}
+
 @IBDesignable
 open class OOUITextField: UITextField {
     
@@ -30,6 +34,8 @@ open class OOUITextField: UITextField {
             validator.registerField(self, rules: [rule!])
         }
     }
+    
+    var returnNextDelegate: OOUITextFieldReturnNextDelegate?
     
     public override init(frame: CGRect) {
         super.init(frame: frame)
@@ -75,6 +81,17 @@ open class OOUITextField: UITextField {
     
     }
     
+    open func themeUpdate(leftImage:UIImage?, leftLightImage:UIImage?, lineColor:UIColor?, lineLightColor:UIColor?) {
+        self.leftImage = leftImage
+        self.leftLightImage = leftLightImage
+        self.lineColor = lineColor
+        self.lineLightColor = lineLightColor
+        let lv = self.leftView?.subviews.first as! UIImageView
+        lv.image = leftImage
+        lv.highlightedImage = leftLightImage
+        lineView.backgroundColor = lv.isHighlighted ? lineLightColor : lineColor
+    }
+    
     
     
     fileprivate func changeShowStatus(_ status:Bool = false) -> Void {
@@ -107,6 +124,9 @@ extension OOUITextField:UITextFieldDelegate {
             return true
         }
         validationRule(textField)
+        if returnNextDelegate != nil {
+            returnNextDelegate?.next()
+        }
         return true
     }
     

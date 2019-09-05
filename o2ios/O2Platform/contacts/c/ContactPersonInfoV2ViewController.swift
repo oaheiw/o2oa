@@ -18,6 +18,7 @@ import CocoaLumberjack
 import O2OA_Auth_SDK
 
 class ContactPersonInfoV2ViewController: UITableViewController {
+    @IBOutlet weak var beijingImg: UIImageView!
     @IBOutlet weak var personImg: UIImageView!
     @IBOutlet weak var personName: UILabel!
     @IBOutlet weak var personQQ: UILabel!
@@ -69,6 +70,7 @@ class ContactPersonInfoV2ViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.beijingImg.theme_image = ThemeImagePicker(keyPath: "Icon.pic_beijing1")
         self.personImg.layer.cornerRadius = self.personImg.frame.size.width / 2
         self.personImg.clipsToBounds = true
         loadPersonInfo(nil)
@@ -97,7 +99,7 @@ class ContactPersonInfoV2ViewController: UITableViewController {
         if self.person != nil {
             username = self.person?.id ?? ""
         }else if self.identity != nil {
-            username = self.identity?.id ?? ""
+            username = self.identity?.person ?? ""
         }
         if username == "" {
             return
@@ -146,7 +148,7 @@ class ContactPersonInfoV2ViewController: UITableViewController {
             cell.eventBut.addTarget(self, action: #selector(self.call), for: UIControl.Event.touchUpInside)
         case "电子邮件":
             cell.valueLab.text = self.contact?.mail
-            cell.eventBut.setImage(UIImage(named: "icon_email"), for: .normal)
+            cell.eventBut.theme_setImage(ThemeImagePicker(keyPath:"Icon.icon_email"), forState: .normal)
             cell.eventBut.addTarget(self, action: #selector(self.sendMail), for: UIControl.Event.touchUpInside)
         case "部门":
             var unitName = ""
@@ -193,12 +195,12 @@ class ContactPersonInfoV2ViewController: UITableViewController {
                 if UIApplication.shared.canOpenURL(mailURL!) {
                     UIApplication.shared.openURL(mailURL!)
                 }else{
-                    ProgressHUD.showError("发邮件失败")
+                    self.showError(title: "发邮件失败")
                 }
             })
             let copyAction = UIAlertAction(title: "复制", style: .default, handler: { _ in
                 UIPasteboard.general.string = mail
-                ProgressHUD.showSuccess("复制成功")
+                self.showSuccess(title: "复制成功")
             })
             
             let cancelAction = UIAlertAction(title: "取消", style: .cancel, handler: nil)
@@ -217,7 +219,7 @@ class ContactPersonInfoV2ViewController: UITableViewController {
                 if UIApplication.shared.canOpenURL(smsURL!) {
                     UIApplication.shared.openURL(smsURL!)
                 }else{
-                    ProgressHUD.showError("发短信失败")
+                    self.showError(title: "发短信失败")
                 }
             })
             let phoneAction = UIAlertAction(title: "打电话", style: .default, handler: { _ in
@@ -225,12 +227,12 @@ class ContactPersonInfoV2ViewController: UITableViewController {
                 if UIApplication.shared.canOpenURL(phoneURL!) {
                     UIApplication.shared.openURL(phoneURL!)
                 }else{
-                    ProgressHUD.showError("打电话失败")
+                    self.showError(title: "打电话失败")
                 }
             })
             let copyAction = UIAlertAction(title: "复制", style: .default, handler: { _ in
                 UIPasteboard.general.string = phone
-                ProgressHUD.showSuccess("复制成功")
+                self.showSuccess(title: "复制成功")
             })
             
             let cancelAction = UIAlertAction(title: "取消", style: .cancel, handler: nil)
@@ -243,7 +245,7 @@ class ContactPersonInfoV2ViewController: UITableViewController {
     }
     
     func loadPersonInfo(_ sender: AnyObject?){
-        ProgressHUD.show("加载中...")
+        self.showMessage(title: "加载中...")
         Alamofire.request(myPersonURL!).responseJSON {
             response in
             switch response.result {
@@ -273,13 +275,13 @@ class ContactPersonInfoV2ViewController: UITableViewController {
                 let url = URL(string: urlstr!)
                 self.personImg.hnk_setImageFromURL(url!)
                 DispatchQueue.main.async {
-                    ProgressHUD.dismiss()
+                    self.dismissProgressHUD()
                     self.tableView.reloadData()
                 }
             case .failure(let err):
                 DDLogError(err.localizedDescription)
                 DispatchQueue.main.async {
-                    ProgressHUD.showError("加载失败")
+                    self.showError(title: "加载失败")
                 }
             }
             

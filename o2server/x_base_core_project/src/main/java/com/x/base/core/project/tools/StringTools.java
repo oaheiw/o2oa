@@ -30,7 +30,7 @@ import org.slf4j.helpers.MessageFormatter;
 
 public class StringTools {
 	public static final Pattern MOBILE_REGEX = Pattern.compile(
-			"(^(\\+)?0{0,2}852\\d{8}$)|(^(\\+)?0{0,2}853\\d{8}$)|(^(\\+)?0{0,2}886\\d{9}$)|(^1(3|4|5|7|8|9)\\d{9}$)");
+			"(^(\\+)?0{0,2}852\\d{8}$)|(^(\\+)?0{0,2}853\\d{8}$)|(^(\\+)?0{0,2}886\\d{9}$)|(^1(3|4|5|6|7|8|9)\\d{9}$)");
 	/** 中文,英文,数字,-,. 【】（） */
 	public static final Pattern SIMPLY_REGEX = Pattern
 			.compile("^[\u4e00-\u9fa5a-zA-Z0-9\\_\\(\\)\\-\\ \\.\\【\\】\\（\\）]*$");
@@ -44,6 +44,10 @@ public class StringTools {
 
 	public static final Pattern UUID_REGEX = Pattern
 			.compile("^[a-zA-Z_0-9]{8}-[a-zA-Z_0-9]{4}-[a-zA-Z_0-9]{4}-[a-zA-Z_0-9]{4}-[a-zA-Z_0-9]{12}$");
+
+	public static final String[] SQL_LIKE = new String[] { "_", "%" };
+
+	public static final String[] SQL_LIKE_SHIFT = new String[] { "\\\\_", "\\\\%" };
 
 	private static final Random random = new Random();
 
@@ -371,6 +375,14 @@ public class StringTools {
 				}
 			}
 			return ListUtils.subtract(in, ex);
+		}
+	}
+
+	public static String escapeSqlLikeKey(String str) {
+		if (StringUtils.isEmpty(str)) {
+			return str;
+		} else {
+			return StringUtils.trim(StringUtils.replaceEach(str, SQL_LIKE, SQL_LIKE_SHIFT));
 		}
 	}
 }

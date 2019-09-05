@@ -36,6 +36,7 @@
   "deleteView": {"uri": "/jaxrs/view/{id}","method": "DELETE"},
   "updateView": {"uri": "/jaxrs/view/{id}","method": "PUT"},
   "loadView": {"uri": "/jaxrs/view/{id}/simulate", "method": "PUT"},
+  "bundleView": {"uri": "/jaxrs/view/{id}/bundle", "method": "PUT"},
 
   "getStat": {"uri": "/jaxrs/stat/{id}"},
   "addStat": {"uri": "/jaxrs/stat","method": "POST"},
@@ -64,13 +65,12 @@
   "stopLearning": {"uri": "/jaxrs/neural/stop/learn/model/{modelFlag}"},
   "resetStatus": {"uri": "/jaxrs/neural/model/{modelFlag}/reset/status"},
 
-  "listStatementNext" : {"uri": "/jaxrs/statement/list/{id}/next/{count}"},
-  "listStatementPrev" : {"uri": "/jaxrs/statement/list/{id}/prev/{count}"},
+  "listStatement" : {"uri": "/jaxrs/statement/list/query/{flag}"},
   "getStatement" : { "uri": "/jaxrs/statement/{flag}" },
   "updateStatement":{ "uri": "/jaxrs/statement/{flag}", "method": "PUT" },
   "createStatement":{ "uri": "/jaxrs/statement", "method": "POST" },
   "deleteStatement" : { "uri": "/jaxrs/statement/{flag}", "method": "DELETE" },
-  "executeStatement" : { "uri": "/jaxrs/statement/{flag}/execute", "method": "POST" },
+  "executeStatement" : { "uri": "/jaxrs/statement/{flag}/execute/page/{page}/size/{size}", "method": "POST" },
 
   "buildAllTable" : { "uri" : "/jaxrs/table/build/all" }, //编译表对象生成实体类进行数据库建表,执行后需要重新启动.
   "listTableNext" : {"uri": "/jaxrs/table/list/{id}/next/{count}"},
@@ -80,6 +80,10 @@
   "updateTable":{ "uri": "/jaxrs/table/{flag}", "method": "PUT" },
   "createTable":{ "uri": "/jaxrs/table", "method": "POST" },
   "deleteTable" : { "uri": "/jaxrs/table/{flag}", "method": "DELETE" },
+  "statusBuild": { "uri": "/jaxrs/table/{flag}/status/build"},
+  "statusDraft": { "uri": "/jaxrs/table/{flag}/status/draft"},
+  "executeJpql": {"uri": "/jaxrs/table/{flag}/execute", "method": "POST"},
+
 
   "listRowNext" : { "uri" : "/jaxrs/table/list/{tableFlag}/row/{id}/next/{count}" },
   "listRowPrev" : { "uri" : "/jaxrs/table/list/{tableFlag}/row/{id}/prev/{count}" },

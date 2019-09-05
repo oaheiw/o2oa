@@ -11,6 +11,8 @@
   "listWorkPrevManage": {"uri": "/jaxrs/work/list/{id}/prev/{count}/application/{applicationId}/manage"},
   "listProcessCountManage": {"uri": "/jaxrs/work/list/count/application/{applicationId}/process/manage"},
 
+  "listWorkCreator": {"uri": "/jaxrs/work/list/{id}/next/{count}/creator/current"},
+  "listWorkCreatorFilter": {"uri": "/jaxrs/work/list/{id}/next/{count}/creator/current/filter", "method": "POST"},
 
   "listAssignments": {"uri": "/jaxrs/work/{id}/assignment/manage"},
   "listRelatives": {"uri": "/jaxrs/work/{id}/relative/manage"},
@@ -42,18 +44,21 @@
   "removeWorkCompleted": {"uri": "/jaxrs/workcompleted/{id}/delete/manage", "method": "DELETE"},
 
   "resetTask": {"uri": "/jaxrs/task/{id}/reset/manage", "method": "PUT"},
-  "flowTask": {"uri": "/jaxrs/task/{id}/completed/manage", "method": "PUT"},
+  "flowTask": {"uri": "/jaxrs/task/{id}/processing/manage", "method": "PUT"},
 
   "resetRead": {"uri": "/jaxrs/read/{id}/reset/manage", "method": "PUT"},
-  "flagRead": {"uri": "/jaxrs/read/{id}/completed/manage", "method": "PUT"},
+  "flagRead": {"uri": "/jaxrs/read/{id}/processing/manage", "method": "PUT"},
 
   "flowWork": {"uri": "/jaxrs/work/{id}/processing", "method": "PUT"},
 
   "getWork": {"uri": "/jaxrs/work/{id}/manage"},
   "getWorkCompleted": {"uri": "/jaxrs/workcompleted/{id}/manage"},
   "getWorkContent": {"uri": "/jaxrs/work/{id}"},
+  "getWorkInfor": {"uri": "/jaxrs/work/{id}"},
 
-  "checkDraft": {"uri": "/jaxrs/work/{id}/check/draft", "method": "DELETE"},
+
+  "checkDraft": {"uri": "/jaxrs/work/{id}/close/check", "method": "GET"},
+
 
 
   "removeTask": {"uri": "/jaxrs/task/{id}/manage", "method": "DELETE"},
@@ -63,8 +68,7 @@
 
   "listDictionary": {"uri": "/jaxrs/applicationdict/list/application/{application}"},
   "getDictionary": {"uri": "/jaxrs/applicationdict/{applicationDict}/application/{applicationFlag}"},
-  //  "addDictionary": {"uri": "/jaxrs/applicationdict", "method": "POST"},
-  //  "removeDictionary": {"uri": "/jaxrs/applicationdict/{applicationDict}","method": "DELETE"},
+
   "updataDictionary": {"uri": "/jaxrs/applicationdict/{applicationDictFlag}/application/{applicationFlag}","method": "PUT"},
 
   "getDictRoot": {"uri": "/jaxrs/applicationdict/{applicationDict}/application/{application}/data"},
@@ -90,8 +94,8 @@
   "listStat": {"uri": "/jaxrs/querystat/list/application/flag/{application}"},
   "loadStat": {"uri": "/jaxrs/querystat/flag/{flag}/application/flag/{application}/execute", "method": "PUT"},
 
+  "press": {"uri": "/jaxrs/taskcompleted/press/work/{work}"},
 
-  //---------------------------------------------------------
   "getCount": {"uri": "/jaxrs/work/count/{credential}"},
 
   "listApplicationStartable": {"uri": "/jaxrs/application/list/complex"},
@@ -111,6 +115,12 @@
   "listTaskFilterCount": {"uri": "/jaxrs/task/filter/attribute"},
   "listTaskFilterCountFilter": {"uri": "/jaxrs/task/filter/attribute/filter", "method": "POST"},
 
+  "listTaskMyFilterPaging": {"uri": "/jaxrs/task/list/my/filter/{page}/size/{size}", "method": "POST"},
+  "listTaskMyPaging": {"uri": "/jaxrs/task/list/my/paging/{page}/size/{size}"},
+
+
+
+
   "getTaskCountFilter": {"uri": "/jaxrs/task/count/filter", "method": "POST"},
   "getTaskCount": {"uri": "/jaxrs/task/count/{name}"},
   "listTaskFilter": {"uri": "/jaxrs/task/list/{id}/next/{count}/filter", "method": "POST"},
@@ -124,25 +134,18 @@
 
   "listTaskCompletedPrev": {"uri": "/jaxrs/taskcompleted/list/{id}/prev/{count}"},
 
-  //  "getJobByTask": {"uri": "/jaxrs/work/task/{id}/complex"},
-  //  "getSimpleJobByTask": {"uri": "/jaxrs/task/{id}/complex"},
   "getSimpleJobByTask": {"uri": "/jaxrs/task/{id}/reference"},
 
   "listTaskApplication": {"uri": "/jaxrs/task/list/count/application"},
   "listTaskCompletedApplication": {"uri": "/jaxrs/taskcompleted/list/count/application"},
 
-  //  "listTaskCompletedFilterCount": {"uri": "/jaxrs/taskcompleted/list/count"},
-  //  "listTaskCompletedFilter": {"uri": "/jaxrs/taskcompleted/list/{id}/next/{count}/filter", "method": "POST"},
-
   "listTaskCompletedFilterCount": {"uri": "/jaxrs/taskcompleted/filter/attribute"},
   "listTaskCompletedFilterCountFilter": {"uri": "/jaxrs/taskcompleted/filter/attribute/filter", "method": "POST"},
+  "listTaskCompletedMyFilterPaging": {"uri": "/jaxrs/taskcompleted/list/my/filter/{page}/size/{size}", "method": "POST"},
+  "listTaskCompletedMyPaging": {"uri": "/jaxrs/taskcompleted/list/my/paging/{page}/size/{size}"},
 
-  //"listTaskCompletedFilterCount": {"uri": "/jaxrs/filter/attribute"},
   "listTaskCompletedFilter": {"uri": "/jaxrs/taskcompleted/list/{id}/next/{count}/filter", "method": "POST"},
 
-
-
-  //"getSimpleJobByTaskCompleted": {"uri": "/jaxrs/taskcompleted/{id}/complex"}
   "getSimpleJobByTaskCompleted": {"uri": "/jaxrs/taskcompleted/{id}/reference"},
   "getTaskCompleted": {"uri": "/jaxrs/taskcompleted/{id}"},
 
@@ -152,7 +155,8 @@
   "getSimpleJobByRead": {"uri": "/jaxrs/read/{id}/reference"},
   "listReadFilterCount": {"uri": "/jaxrs/read/filter/attribute"},
   "listReadFilterCountFilter": {"uri": "/jaxrs/read/filter/attribute/filter", "method": "POST"},
-
+  "listReadMyFilterPaging": {"uri": "/jaxrs/read/list/my/filter/{page}/size/{size}", "method": "POST"},
+  "listReadMyPaging": {"uri": "/jaxrs/read/list/my/paging/{page}/size/{size}"},
 
   "getReadCount": {"uri": "/jaxrs/read/count/{name}"},
   "setReaded": {"uri": "/jaxrs/read/{id}/processing", "method": "POST"},
@@ -165,6 +169,9 @@
   "getReaded": {"uri": "/jaxrs/readcompleted/{id}"},
   "listReadedFilterCount": {"uri": "/jaxrs/readcompleted/filter/attribute"},
   "listReadedFilterCountFilter": {"uri": "/jaxrs/readcompleted/filter/attribute/filter", "method": "POST"},
+  "listReadedMyFilterPaging": {"uri": "/jaxrs/readcompleted/list/my/filter/{page}/size/{size}", "method": "POST"},
+  "listReadedMyPaging": {"uri": "/jaxrs/readcompleted/list/my/paging/{page}/size/{size}"},
+
 
   "listReviewApplication": {"uri": "/jaxrs/review/list/count/application"},
   "listReviewFilter": {"uri": "/jaxrs/review/list/{id}/next/{count}/filter", "method": "POST"},
@@ -173,8 +180,12 @@
   "getReview": {"uri": "/jaxrs/review/{id}"},
   "listReviewFilterCount": {"uri": "/jaxrs/review/filter/attribute"},
   "listReviewFilterCountFilter": {"uri": "/jaxrs/review/filter/attribute/filter", "method": "POST"},
+  "listReviewMyFilterPaging": {"uri": "/jaxrs/review/list/my/filter/{page}/size/{size}", "method": "POST"},
+  "listReviewMyPaging": {"uri": "/jaxrs/review/list/my/paging/{page}/size/{size}"},
 
-  //----------------------------------------------------------
+  "manageDeleteReview": {"uri": "/jaxrs/review/{id}/application/{applicationFlag}/manage", "method": "DELETE"},
+  "addWorkCompletedReview": {"uri": "/jaxrs/review/create/workcompleted", "method": "POST"},
+
   "getJobByTask": {"uri": "/jaxrs/work/task/{id}/complex"},
   "getJobByWork": {"uri": "/jaxrs/work/{id}/complex"},
   "getJobByWorkMobile": {"uri": "/jaxrs/work/{id}/complex/mobile"},
@@ -185,15 +196,19 @@
   "getWorkData": {"uri": "/jaxrs/data/work/{id}", "method": "GET"},
   "getWorkDataByPath": {"uri": "/jaxrs/data/work/{id}/{path}", "method": "GET"},
   "getWorkcompletedDataByPath": {"uri": "/jaxrs/data/workcompleted/{id}/{path}", "method": "GET"},
+  "getJobDataByPath": {"uri": "/jaxrs/data/job/{id}/{path}", "method": "GET"},
 
   "getWorkcompletedData": {"uri": "/jaxrs/data/workcompleted/{id}", "method": "GET"},
 
   "saveData": {"uri": "/jaxrs/data/work/{id}", "method": "PUT"},
+  "saveWorkCompletedData": {"uri": "/jaxrs/data/workcompleted/{id}", "method": "PUT"},
 
   "getJobByWorkCompleted": {"uri": "/jaxrs/workcompleted/{id}/complex"},
   "getJobByWorkCompletedMobile": {"uri": "/jaxrs/workcompleted/{id}/complex/mobile"},
 
   "uploadAttachment": {"uri": "/jaxrs/attachment/upload/work/{id}", "method": "POST", "enctype": "formData"},
+  "uploadAttachmentByWorkCompleted": {"uri": "/jaxrs/attachment/upload/workcompleted/{id}", "method": "POST", "enctype": "formData"},
+
   "replaceAttachment": {"uri": "/jaxrs/attachment/update/{id}/work/{workid}", "method": "POST", "enctype": "formData"},
 
   "getAttachmentData": {"uri": "/jaxrs/attachment/download/{id}/work/{workid}", "method": "GET"},
@@ -205,6 +220,7 @@
   "getAttachment": {"uri": "/jaxrs/attachment/{id}/work/{workid}"},
   "getAttachmentWorkcompleted": {"uri": "/jaxrs/attachment/{id}/workCompletedId/{workCompletedId}"},
   "deleteAttachment": {"uri": "/jaxrs/attachment/{id}/work/{workid}", "method": "DELETE"},
+  "deleteWorkCompletedAttachment": {"uri": "/jaxrs/attachment/{id}/workcompleted/{workCompletedId}", "method": "DELETE"},
 
   "configAttachment": {"uri": "/jaxrs/attachment/edit/{id}/work/{workId}", "method": "PUT"},
   "getAttachmentOCR": {"uri": "/jaxrs/attachment/{id}/work/{workId}/text"},
@@ -225,7 +241,7 @@
 
   "lookupView": {"uri": "/jaxrs/view/{id}"},
   "getView": {"uri": "/jaxrs/view/{id}"},
-  //"getForm": {"uri": "/jaxrs/form/{id}"},
+
   "getForm": {"uri": "/jaxrs/form/{id}/application/{applicationFlag}"},
   "getScript": {"uri": "/jaxrs/script/{flag}/application/{applicationFlag}"},
 
@@ -255,17 +271,29 @@
 
   "listTaskByJob": {"uri": "/jaxrs/task/list/job/{job}"},
   "listTaskCompletedByJob": {"uri": "/jaxrs/taskcompleted/list/job/{job}"},
-  "listReadByJob": {"uri": "/jaxrs/task/read/job/{job}"},
+  "listReadByJob": {"uri": "/jaxrs/read/list/job/{job}"},
   "listReadCompletedByJob": {"uri": "/jaxrs/readcompleted/list/job/{job}"},
 
   "listTaskByWork": {"uri": "/jaxrs/task/list/work/{work}"},
   "listTaskCompletedByWork": {"uri": "/jaxrs/taskcompleted/list/work/{work}"},
-  "listReadByWork": {"uri": "/jaxrs/task/read/work/{work}"},
+  "listReadByWork": {"uri": "/jaxrs/read/list/work/{work}"},
   "listReadCompletedByWork": {"uri": "/jaxrs/readcompleted/list/work/{work}"},
 
   "rollback": {"uri": "/jaxrs/work/{id}/rollback", "method": "PUT"},
   "rollbackWorkcompleted": {"uri": "/jaxrs/workcompleted/{flag}/rollback", "method": "PUT"},
 
+  "setTaskOpinion": {"uri": "/jaxrs/task/{id}/opinion/manage", "method": "PUT"},
+  "setTaskCompletedOpinion": {"uri": "/jaxrs/taskcompleted/{id}/opinion/manage", "method": "PUT"},
+  "setReadOpinion": {"uri": "/jaxrs/read/{id}/opinion/manage", "method": "PUT"},
+  "setReadCompletedOpinion": {"uri": "/jaxrs/readcompleted/{id}/opinion/manage", "method": "PUT"},
+
+  "manageListTaskFilterByPage": {"uri": "/jaxrs/task/list/filter/{page}/size/{pageSize}/manage", "method": "POST"},
+  "manageListTaskDoneFilterByPage": {"uri": "/jaxrs/taskcompleted/list/filter/{page}/size/{pageSize}/manage", "method": "POST"},
+  "manageListReadFilterByPage": {"uri": "/jaxrs/read/list/filter/{page}/size/{pageSize}/manage", "method": "POST"},
+  "manageListReadDoneFilterByPage": {"uri": "/jaxrs/readcompleted/list/filter/{page}/size/{pageSize}/manage", "method": "POST"},
+
+  "manageListWorkFilterByPage": {"uri": "/jaxrs/work/list/filter/{page}/size/{pageSize}/manage", "method": "POST"},
+  "manageListWorkCompletedFilterByPage": {"uri": "/jaxrs/workcompleted/list/filter/{page}/size/{pageSize}/manage", "method": "POST"},
 
   "clazz": "x_processplatform_assemble_surface"
 

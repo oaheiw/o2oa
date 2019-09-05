@@ -9,6 +9,7 @@ import com.x.base.core.container.EntityManagerContainer;
 import com.x.base.core.container.factory.EntityManagerContainerFactory;
 import com.x.base.core.project.x_processplatform_service_processing;
 import com.x.base.core.project.annotation.FieldDescribe;
+import com.x.base.core.project.exception.ExceptionAccessDenied;
 import com.x.base.core.project.gson.GsonPropertyObject;
 import com.x.base.core.project.http.ActionResult;
 import com.x.base.core.project.http.EffectivePerson;
@@ -39,10 +40,12 @@ class ActionCopyToWork extends BaseAction {
 			if (null == work) {
 				throw new ExceptionWorkNotExist(workId);
 			}
-			WoWorkControl workControl = business.getControl(effectivePerson, work, WoWorkControl.class);
-			if (!workControl.getAllowProcessing()) {
-				throw new ExceptionWorkAccessDenied(effectivePerson.getDistinguishedName(), work.getTitle(),
-						work.getId());
+			if (effectivePerson.isNotManager()) {
+				WoWorkControl workControl = business.getControl(effectivePerson, work, WoWorkControl.class);
+				if (!workControl.getAllowProcessing()) {
+					throw new ExceptionWorkAccessDenied(effectivePerson.getDistinguishedName(), work.getTitle(),
+							work.getId());
+				}
 			}
 			Req req = new Req();
 			if (ListTools.isNotEmpty(wi.getAttachmentList())) {
@@ -51,8 +54,8 @@ class ActionCopyToWork extends BaseAction {
 					if (null == o) {
 						throw new ExceptionAttachmentNotExist(w.getId());
 					}
-					if (!this.visible(business, effectivePerson, o.getJob())) {
-						throw new ExceptionJobAccessDenied(effectivePerson.getDistinguishedName(), o.getJob());
+					if (!business.readableWithJob(effectivePerson, o.getJob())) {
+						throw new ExceptionAccessDenied(effectivePerson, o.getJob());
 					}
 					ReqAttachment qa = new ReqAttachment();
 					qa.setId(o.getId());
@@ -70,25 +73,6 @@ class ActionCopyToWork extends BaseAction {
 			result.setData(wos);
 			return result;
 		}
-	}
-
-	private boolean visible(Business business, EffectivePerson effectivePerson, String job) throws Exception {
-		if (business.task().countWithPersonWithJob(effectivePerson.getDistinguishedName(), job) > 0) {
-			return true;
-		}
-		if (business.taskCompleted().countWithPersonWithJob(effectivePerson.getDistinguishedName(), job) > 0) {
-			return true;
-		}
-		if (business.read().countWithPersonWithJob(effectivePerson.getDistinguishedName(), job) > 0) {
-			return true;
-		}
-		if (business.readCompleted().countWithPersonWithJob(effectivePerson.getDistinguishedName(), job) > 0) {
-			return true;
-		}
-		if (business.review().countWithPersonWithJob(effectivePerson.getDistinguishedName(), job) > 0) {
-			return true;
-		}
-		return false;
 	}
 
 	public static class Wi extends GsonPropertyObject {

@@ -36,9 +36,9 @@
 			<groupId>o2oa</groupId>
 			<artifactId>x_processplatform_core_entity</artifactId>
 		</dependency>
-		<dependency>
+				<dependency>
 			<groupId>o2oa</groupId>
-			<artifactId>x_collaboration_core_message</artifactId>
+			<artifactId>x_cms_core_entity</artifactId>
 		</dependency>
 	</dependencies>
 	<build>
@@ -48,6 +48,10 @@
 				<executions>
 					<execution>
 						<id>describe</id>
+						<phase>prepare-package</phase>
+					</execution>
+					<execution>
+						<id>checkAssemble</id>
 						<phase>prepare-package</phase>
 					</execution>
 				</executions>
