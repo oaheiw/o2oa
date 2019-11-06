@@ -10,11 +10,7 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
-import javax.websocket.CloseReason;
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
+import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 
 import com.google.gson.JsonElement;
@@ -30,6 +26,7 @@ import com.x.base.core.project.message.MessageConnector;
 import com.x.base.core.project.message.WsMessage;
 import com.x.message.core.entity.Message;
 import com.x.message.core.entity.Message_;
+import org.apache.commons.lang3.StringUtils;
 
 @ServerEndpoint(value = "/ws/collaboration", configurator = WsConfigurator.class)
 public class ActionCollaboration {
@@ -47,8 +44,6 @@ public class ActionCollaboration {
 			return;
 		} else {
 			clients.put(session, effectivePerson.getDistinguishedName());
-			// ThisApplication.connections.put(effectivePerson.getDistinguishedName(),
-			// session);
 			try {
 				List<Message> messages = this.load(effectivePerson);
 				WsMessage ws = null;
@@ -69,19 +64,26 @@ public class ActionCollaboration {
 
 	@OnClose
 	public void close(Session session, CloseReason reason) throws IOException {
-//		EffectivePerson effectivePerson = (EffectivePerson) session.getUserProperties().get(HttpToken.X_Person);
-//		logger.debug("@OnOpen: tokenType:{}, distinguishedName:{}.", effectivePerson.getTokenType(),
-//				effectivePerson.getDistinguishedName());
-//		if (TokenType.anonymous.equals(effectivePerson.getTokenType())) {
-//			return;
-//		}
-//		ThisApplication.connections.remove(effectivePerson.getDistinguishedName());
 		clients.remove(session);
 	}
 
 	@OnError
 	public void error(Throwable t) throws Throwable {
 
+	}
+
+	@OnMessage
+	public void message(String input, Session session) throws Exception {
+		EffectivePerson effectivePerson = (EffectivePerson) session.getUserProperties().get(HttpToken.X_Person);
+		logger.debug("@OnMessage1 receive: message {}, person:{}, ip:{}, client:{} .", input,
+				effectivePerson.getDistinguishedName(), effectivePerson.getRemoteAddress(), effectivePerson.getUserAgent());
+		if (StringUtils.isBlank(input)) {
+			return;
+		}
+		// 建立心跳，维持websocket链接
+		if (input.equalsIgnoreCase("heartbeat")) {
+			session.getBasicRemote().sendText("heartbeat");
+		}
 	}
 
 	private List<Message> load(EffectivePerson effectivePerson) {

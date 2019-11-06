@@ -2,11 +2,9 @@ package com.x.processplatform.service.processing.processor.merge;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -15,7 +13,6 @@ import com.x.base.core.project.logger.Logger;
 import com.x.base.core.project.logger.LoggerFactory;
 import com.x.base.core.project.tools.ListTools;
 import com.x.processplatform.core.entity.content.Work;
-import com.x.processplatform.core.entity.element.ActivityType;
 import com.x.processplatform.core.entity.element.Merge;
 import com.x.processplatform.core.entity.element.Route;
 import com.x.processplatform.service.processing.processor.AeiObjects;
@@ -45,79 +42,98 @@ public class MergeProcessor extends AbstractMergeProcessor {
 			results.add(aeiObjects.getWork());
 			return results;
 		}
-		String splitToken = null;
-		List<Work> waitMerges = new ArrayList<>();
-		for (String str : aeiObjects.getWork().getSplitTokenList()) {
-			if (StringUtils.isNotEmpty(str)) {
-				waitMerges = aeiObjects.getWorks().stream()
-						.filter(o -> ListTools.contains(o.getSplitTokenList(), str)
-								&& (!Objects.equals(ActivityType.end, o.getActivityType())))
-						.collect(Collectors.toList());
-				if (!waitMerges.isEmpty()) {
-					if (waitMerges.stream()
-							.allMatch(o -> StringUtils.equals(o.getActivity(), aeiObjects.getWork().getActivity()))) {
-						splitToken = str;
-						break;
-					}
+		Work other = findWorkMergeTo(aeiObjects);
+
+		/* 完全找不到合并的文档,唯一一份 */
+		if (null != other) {
+			aeiObjects.getUpdateWorks().add(other);
+			aeiObjects.getDeleteWorks().add(aeiObjects.getWork());
+			this.mergeTaskCompleted(aeiObjects, aeiObjects.getWork(), other);
+			this.mergeRead(aeiObjects, aeiObjects.getWork(), other);
+			this.mergeReadCompleted(aeiObjects, aeiObjects.getWork(), other);
+			this.mergeReview(aeiObjects, aeiObjects.getWork(), other);
+			this.mergeHint(aeiObjects, aeiObjects.getWork(), other);
+			this.mergeAttachment(aeiObjects, aeiObjects.getWork(), other);
+			this.mergeWorkLog(aeiObjects, aeiObjects.getWork(), other);
+			aeiObjects.getWorkLogs().stream()
+					.filter(p -> StringUtils.equals(p.getFromActivityToken(), aeiObjects.getWork().getActivityToken()))
+					.forEach(obj -> {
+						aeiObjects.getDeleteWorkLogs().add(obj);
+					});
+		} else {
+			Work branch = this.findWorkBranch(aeiObjects);
+			if (null != branch) {
+				aeiObjects.getWork().setSplitting(true);
+				aeiObjects.getWork().setSplitTokenList(ListUtils.longestCommonSubsequence(
+						aeiObjects.getWork().getSplitTokenList(), branch.getSplitTokenList()));
+				aeiObjects.getWork().setSplitToken(aeiObjects.getWork().getSplitTokenList()
+						.get(aeiObjects.getWork().getSplitTokenList().size() - 1));
+				aeiObjects.getWork().setSplitValue("");
+				results.add(aeiObjects.getWork());
+			} else {
+				aeiObjects.getWork().setSplitting(false);
+				aeiObjects.getWork().setSplitTokenList(new ArrayList<String>());
+				aeiObjects.getWork().setSplitToken("");
+				aeiObjects.getWork().setSplitValue("");
+				results.add(aeiObjects.getWork());
+			}
+		}
+		return results;
+	}
+
+	private Work findWorkMergeTo(AeiObjects aeiObjects) throws Exception {
+		String join = StringUtils.join(aeiObjects.getWork().getSplitTokenList(), ",");
+		/* 查找同级 */
+		Work other = aeiObjects.getWorks().stream().filter(o -> {
+			if (BooleanUtils.isTrue(o.getSplitting()) && (o != aeiObjects.getWork())) {
+				if (StringUtils.equals(StringUtils.join(o.getSplitTokenList(), ","), join)) {
+					return true;
 				}
 			}
+			return false;
+		}).sorted((o1, o2) -> {
+			return o1.getCreateTime().compareTo(o2.getCreateTime());
+		}).findFirst().orElse(null);
+
+		/* 找不到同级那么开始早更深层次的文档 */
+		if (null == other) {
+			other = aeiObjects.getWorks().stream().filter(o -> {
+				if (BooleanUtils.isTrue(o.getSplitting()) && (o != aeiObjects.getWork())) {
+					if (StringUtils.startsWith(StringUtils.join(o.getSplitTokenList(), ","), join)) {
+						return true;
+					}
+				}
+				return false;
+			}).sorted((o1, o2) -> {
+				int compare = o2.getSplitTokenList().size() - o1.getSplitTokenList().size();
+				if (compare == 0) {
+					return o2.getCreateTime().compareTo(o1.getCreateTime());
+				}
+				return compare;
+			}).findFirst().orElse(null);
 		}
-		/* 没有找到需要合并的work,直接返回 */
-		if (StringUtils.isEmpty(splitToken)) {
-			return results;
-		}
-		/* 已经找到了需要合并的work,找到最老的作为基准work */
-		Work oldest = waitMerges.stream()
-				.sorted(Comparator.comparing(Work::getCreateTime, Comparator.nullsLast(Date::compareTo))).findFirst()
-				.get();
-		aeiObjects.getUpdateWorks().add(oldest);
-		waitMerges.stream().filter(o -> (!Objects.equals(o, oldest))).forEach(o -> {
-			/* 排除oldest文档不进行删除 */
-			aeiObjects.getDeleteWorks().add(o);
-			/* 是不可能有待办的 */
-			/* 将已办归并到最早work */
-			this.mergeTaskCompleted(aeiObjects, o, oldest);
-			/* 将待阅归并到最早work */
-			this.mergeRead(aeiObjects, o, oldest);
-			/* 将已阅归并到最早work */
-			this.mergeReadCompleted(aeiObjects, o, oldest);
-			/* 将参阅归并到最早work */
-			this.mergeReview(aeiObjects, o, oldest);
-			/* 将提示归并到最早work */
-			this.mergeHint(aeiObjects, o, oldest);
-			/* 将附件归并到当前work */
-			this.mergeAttachment(aeiObjects, o, oldest);
-			/* 将工作日志归并到当前work */
-			this.mergeWorkLog(aeiObjects, o, oldest);
-			/* 将要合并的工作上当前为连接的workLog删除 */
-			try {
-				aeiObjects.getWorkLogs().stream()
-						.filter(p -> StringUtils.equals(p.getFromActivityToken(), o.getActivityToken()))
-						.forEach(obj -> {
-							aeiObjects.getDeleteWorkLogs().add(obj);
-						});
-			} catch (Exception e) {
-				logger.error(e);
+		return other;
+	}
+
+	private Work findWorkBranch(AeiObjects aeiObjects) throws Exception {
+		Work branch = null;
+		String join = StringUtils.join(aeiObjects.getWork().getSplitTokenList(), ",");
+		while (StringUtils.indexOf(join, ",") > 0) {
+			join = StringUtils.substringBeforeLast(join, ",");
+			final String part = join;
+			branch = aeiObjects.getWorks().stream().filter(o -> {
+				if (BooleanUtils.isTrue(o.getSplitting()) && (o != aeiObjects.getWork())) {
+					if (StringUtils.startsWithIgnoreCase(StringUtils.join(o.getSplitTokenList(), ","), part)) {
+						return true;
+					}
+				}
+				return false;
+			}).findFirst().orElse(null);
+			if (null != branch) {
+				return branch;
 			}
-		});
-		List<String> splitTokens = new ArrayList<>();
-		for (String str : oldest.getSplitTokenList()) {
-			if (StringUtils.equals(str, splitToken)) {
-				break;
-			}
-			splitTokens.add(str);
 		}
-		oldest.setSplitTokenList(splitTokens);
-		if (splitTokens.isEmpty()) {
-			oldest.setSplitValue("");
-			oldest.setSplitting(false);
-			oldest.setSplitToken("");
-		} else {
-			oldest.setSplitting(true);
-			oldest.setSplitToken(splitTokens.get(splitTokens.size() - 1));
-		}
-		results.add(oldest);
-		return results;
+		return null;
 	}
 
 	private void mergeTaskCompleted(AeiObjects aeiObjects, Work work, Work oldest) {
@@ -125,7 +141,6 @@ public class MergeProcessor extends AbstractMergeProcessor {
 			aeiObjects.getTaskCompleteds().stream().filter(o -> StringUtils.equals(o.getWork(), work.getId()))
 					.forEach(o -> {
 						o.setWork(oldest.getId());
-						// o.setActivityToken(oldest.getActivityToken());
 						aeiObjects.getUpdateTaskCompleteds().add(o);
 					});
 		} catch (Exception e) {
@@ -137,7 +152,6 @@ public class MergeProcessor extends AbstractMergeProcessor {
 		try {
 			aeiObjects.getReads().stream().filter(o -> StringUtils.equals(o.getWork(), work.getId())).forEach(o -> {
 				o.setWork(oldest.getId());
-				// o.setActivityToken(oldest.getActivityToken());
 				aeiObjects.getUpdateReads().add(o);
 			});
 		} catch (Exception e) {
@@ -199,7 +213,7 @@ public class MergeProcessor extends AbstractMergeProcessor {
 							&& StringUtils.equals(o.getWork(), work.getId()))
 					.forEach(o -> {
 						o.setWork(oldest.getId());
-						o.setArrivedActivityToken(oldest.getActivityToken());
+						// o.setArrivedActivityToken(oldest.getActivityToken());
 						aeiObjects.getUpdateWorkLogs().add(o);
 					});
 		} catch (Exception e) {

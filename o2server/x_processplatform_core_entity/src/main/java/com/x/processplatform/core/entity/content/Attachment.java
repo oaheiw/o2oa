@@ -19,6 +19,7 @@ import javax.persistence.OrderColumn;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.openjpa.persistence.PersistentCollection;
 import org.apache.openjpa.persistence.jdbc.ContainerTable;
@@ -105,6 +106,12 @@ public class Attachment extends StorageObject {
 			throw new Exception("id can not be empty.");
 		}
 		String str = DateTools.format(workCreateTime, DateTools.formatCompact_yyyyMMdd);
+		if (BooleanUtils.isTrue(this.getDeepPath())) {
+			str += PATHSEPARATOR;
+			str += StringUtils.substring(this.job, 0, 2);
+			str += PATHSEPARATOR;
+			str += StringUtils.substring(this.job, 2, 4);
+		}
 		str += PATHSEPARATOR;
 		str += this.job;
 		str += PATHSEPARATOR;
@@ -161,6 +168,16 @@ public class Attachment extends StorageObject {
 	@Override
 	public void setLastUpdateTime(Date lastUpdateTime) {
 		this.lastUpdateTime = lastUpdateTime;
+	}
+
+	@Override
+	public Boolean getDeepPath() {
+		return BooleanUtils.isTrue(this.deepPath);
+	}
+
+	@Override
+	public void setDeepPath(Boolean deepPath) {
+		this.deepPath = deepPath;
 	}
 
 	public static final String name_FIELDNAME = "name";
@@ -381,6 +398,13 @@ public class Attachment extends StorageObject {
 	@ElementIndex(name = TABLE + IndexNameMiddle + controllerUnitList_FIELDNAME + ElementIndexNameSuffix)
 	@CheckPersist(allowEmpty = true)
 	private List<String> controllerUnitList;
+
+	public static final String deepPath_FIELDNAME = "deepPath";
+	@FieldDescribe("是否使用更深的路径.")
+	@CheckPersist(allowEmpty = true)
+	@Column(name = ColumnNamePrefix + deepPath_FIELDNAME)
+	@Index(name = TABLE + IndexNameMiddle + deepPath_FIELDNAME)
+	private Boolean deepPath;
 
 	public String getJob() {
 		return job;

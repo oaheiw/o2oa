@@ -1,18 +1,28 @@
 package com.x.cms.core.entity;
 
 import java.util.Date;
+import java.util.List;
 
+import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
+import javax.persistence.Lob;
+import javax.persistence.OrderColumn;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.UniqueConstraint;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.openjpa.persistence.PersistentCollection;
+import org.apache.openjpa.persistence.jdbc.ContainerTable;
+import org.apache.openjpa.persistence.jdbc.ElementColumn;
+import org.apache.openjpa.persistence.jdbc.ElementIndex;
 import org.apache.openjpa.persistence.jdbc.Index;
 
 import com.x.base.core.entity.AbstractPersistenceProperties;
@@ -63,7 +73,7 @@ public class FileInfo extends StorageObject {
 	public static final String lastUpdateTime_FIELDNAME = "lastUpdateTime";
 	@FieldDescribe("最后更新时间")
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column( name = ColumnNamePrefix + lastUpdateTime_FIELDNAME)
+	@Column(name = ColumnNamePrefix + lastUpdateTime_FIELDNAME)
 	@Index(name = TABLE + IndexNameMiddle + lastUpdateTime_FIELDNAME)
 	@CheckPersist(allowEmpty = true)
 	private Date lastUpdateTime;
@@ -102,17 +112,27 @@ public class FileInfo extends StorageObject {
 	}
 
 	@Override
+	public Boolean getDeepPath() {
+		return BooleanUtils.isTrue(this.deepPath);
+	}
+
+	@Override
+	public void setDeepPath(Boolean deepPath) {
+		this.deepPath = deepPath;
+	}
+
+	@Override
 	public String path() throws Exception {
-		if ( StringUtils.isEmpty(  this.appId )) {
+		if (StringUtils.isEmpty(this.appId)) {
 			throw new Exception("appId can not be null.");
 		}
-		if ( StringUtils.isEmpty( this.categoryId )) {
+		if (StringUtils.isEmpty(this.categoryId)) {
 			throw new Exception("categoryId can not be null.");
 		}
-		if (StringUtils.isEmpty( documentId)) {
+		if (StringUtils.isEmpty(documentId)) {
 			throw new Exception("documentId can not be null.");
 		}
-		if (StringUtils.isEmpty( id )) {
+		if (StringUtils.isEmpty(id)) {
 			throw new Exception("id can not be empty.");
 		}
 		String str = DateTools.format(this.getCreateTime(), DateTools.formatCompact_yyyyMMdd);
@@ -142,7 +162,8 @@ public class FileInfo extends StorageObject {
 	 */
 	public static final String name_FIELDNAME = "name";
 	@FieldDescribe("文件真实名称")
-	@Column(length = AbstractPersistenceProperties.processPlatform_name_length, name = ColumnNamePrefix + name_FIELDNAME)
+	@Column(length = AbstractPersistenceProperties.processPlatform_name_length, name = ColumnNamePrefix
+			+ name_FIELDNAME)
 	@CheckPersist(fileNameString = true, allowEmpty = true)
 	private String name;
 
@@ -154,7 +175,8 @@ public class FileInfo extends StorageObject {
 
 	public static final String fileName_FIELDNAME = "fileName";
 	@FieldDescribe("服务器上编码后的文件名,为了方便辨识带扩展名")
-	@Column(length = AbstractPersistenceProperties.processPlatform_name_length, name = ColumnNamePrefix + fileName_FIELDNAME)
+	@Column(length = AbstractPersistenceProperties.processPlatform_name_length, name = ColumnNamePrefix
+			+ fileName_FIELDNAME)
 	@CheckPersist(fileNameString = true, allowEmpty = true)
 	private String fileName;
 
@@ -189,6 +211,12 @@ public class FileInfo extends StorageObject {
 	@CheckPersist(allowEmpty = true)
 	private String fileExtType;
 
+	public static final String type_FIELDNAME = "type";
+	@FieldDescribe("根据流文件判断的文件类型.")
+	@Column(length = JpaObject.length_255B, name = ColumnNamePrefix + type_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String type;
+
 	public static final String fileHost_FIELDNAME = "fileHost";
 	@FieldDescribe("文件存储主机名")
 	@Column(length = JpaObject.length_32B, name = ColumnNamePrefix + fileHost_FIELDNAME)
@@ -208,7 +236,8 @@ public class FileInfo extends StorageObject {
 
 	public static final String creatorUid_FIELDNAME = "creatorUid";
 	@FieldDescribe("创建者UID")
-	@Column(length =AbstractPersistenceProperties.processPlatform_name_length, name = ColumnNamePrefix + creatorUid_FIELDNAME)
+	@Column(length = AbstractPersistenceProperties.processPlatform_name_length, name = ColumnNamePrefix
+			+ creatorUid_FIELDNAME)
 	@CheckPersist(allowEmpty = true)
 	private String creatorUid;
 
@@ -220,16 +249,101 @@ public class FileInfo extends StorageObject {
 
 	public static final String seqNumber_FIELDNAME = "seqNumber";
 	@FieldDescribe("排序号")
-	@Column( name = ColumnNamePrefix + seqNumber_FIELDNAME)
+	@Column(name = ColumnNamePrefix + seqNumber_FIELDNAME)
 	@CheckPersist(fileNameString = true, allowEmpty = true)
 	private Integer seqNumber = 1000;
 
 	public static final String length_FIELDNAME = "length";
 	@FieldDescribe("文件大小.")
-	@Column( name = ColumnNamePrefix + length_FIELDNAME)
+	@Column(name = ColumnNamePrefix + length_FIELDNAME)
 	@Index(name = TABLE + "_length")
 	@CheckPersist(allowEmpty = true)
 	private Long length;
+
+	public static final String text_FIELDNAME = "text";
+	@FieldDescribe("文本.")
+	@Lob
+	@Basic(fetch = FetchType.EAGER)
+	@Column(length = JpaObject.length_100M, name = ColumnNamePrefix + text_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String text;
+
+	public static final String readIdentityList_FIELDNAME = "readIdentityList";
+	@FieldDescribe("可以访问的身份.")
+	@PersistentCollection(fetch = FetchType.EAGER)
+	@ContainerTable(name = TABLE + ContainerTableNameMiddle
+			+ readIdentityList_FIELDNAME, joinIndex = @Index(name = TABLE + IndexNameMiddle + readIdentityList_FIELDNAME
+					+ JoinIndexNameSuffix))
+	@OrderColumn(name = ORDERCOLUMNCOLUMN)
+	@ElementColumn(length = length_255B, name = ColumnNamePrefix + readIdentityList_FIELDNAME)
+	@ElementIndex(name = TABLE + IndexNameMiddle + readIdentityList_FIELDNAME + ElementIndexNameSuffix)
+	@CheckPersist(allowEmpty = true)
+	private List<String> readIdentityList;
+
+	public static final String readUnitList_FIELDNAME = "readUnitList";
+	@FieldDescribe("可以访问的组织.")
+	@PersistentCollection(fetch = FetchType.EAGER)
+	@ContainerTable(name = TABLE + ContainerTableNameMiddle + readUnitList_FIELDNAME, joinIndex = @Index(name = TABLE
+			+ IndexNameMiddle + readUnitList_FIELDNAME + JoinIndexNameSuffix))
+	@OrderColumn(name = ORDERCOLUMNCOLUMN)
+	@ElementColumn(length = length_255B, name = ColumnNamePrefix + readUnitList_FIELDNAME)
+	@ElementIndex(name = TABLE + IndexNameMiddle + readUnitList_FIELDNAME + ElementIndexNameSuffix)
+	@CheckPersist(allowEmpty = true)
+	private List<String> readUnitList;
+
+	public static final String editIdentityList_FIELDNAME = "editIdentityList";
+	@FieldDescribe("可以修改的用户.")
+	@PersistentCollection(fetch = FetchType.EAGER)
+	@ContainerTable(name = TABLE + ContainerTableNameMiddle
+			+ editIdentityList_FIELDNAME, joinIndex = @Index(name = TABLE + IndexNameMiddle + editIdentityList_FIELDNAME
+					+ JoinIndexNameSuffix))
+	@OrderColumn(name = ORDERCOLUMNCOLUMN)
+	@ElementColumn(length = length_255B, name = ColumnNamePrefix + editIdentityList_FIELDNAME)
+	@ElementIndex(name = TABLE + IndexNameMiddle + editIdentityList_FIELDNAME + ElementIndexNameSuffix)
+	@CheckPersist(allowEmpty = true)
+	private List<String> editIdentityList;
+
+	public static final String editUnitList_FIELDNAME = "editUnitList";
+	@FieldDescribe("可以修改的组织.")
+	@PersistentCollection(fetch = FetchType.EAGER)
+	@ContainerTable(name = TABLE + ContainerTableNameMiddle + editUnitList_FIELDNAME, joinIndex = @Index(name = TABLE
+			+ IndexNameMiddle + editUnitList_FIELDNAME + JoinIndexNameSuffix))
+	@OrderColumn(name = ORDERCOLUMNCOLUMN)
+	@ElementColumn(length = length_255B, name = ColumnNamePrefix + editUnitList_FIELDNAME)
+	@ElementIndex(name = TABLE + IndexNameMiddle + editUnitList_FIELDNAME + ElementIndexNameSuffix)
+	@CheckPersist(allowEmpty = true)
+	private List<String> editUnitList;
+
+	public static final String controllerIdentityList_FIELDNAME = "controllerIdentityList";
+	@FieldDescribe("可以管理的用户.")
+	@PersistentCollection(fetch = FetchType.EAGER)
+	@ContainerTable(name = TABLE + ContainerTableNameMiddle
+			+ controllerIdentityList_FIELDNAME, joinIndex = @Index(name = TABLE + IndexNameMiddle
+					+ controllerIdentityList_FIELDNAME + JoinIndexNameSuffix))
+	@OrderColumn(name = ORDERCOLUMNCOLUMN)
+	@ElementColumn(length = length_255B, name = ColumnNamePrefix + controllerIdentityList_FIELDNAME)
+	@ElementIndex(name = TABLE + IndexNameMiddle + controllerIdentityList_FIELDNAME + ElementIndexNameSuffix)
+	@CheckPersist(allowEmpty = true)
+	private List<String> controllerIdentityList;
+
+	public static final String controllerUnitList_FIELDNAME = "controllerUnitList";
+	@FieldDescribe("可以管理的组织.")
+	@PersistentCollection(fetch = FetchType.EAGER)
+	@ContainerTable(name = TABLE + ContainerTableNameMiddle
+			+ controllerUnitList_FIELDNAME, joinIndex = @Index(name = TABLE + IndexNameMiddle
+					+ controllerUnitList_FIELDNAME + JoinIndexNameSuffix))
+	@OrderColumn(name = ORDERCOLUMNCOLUMN)
+	@ElementColumn(length = length_255B, name = ColumnNamePrefix + controllerUnitList_FIELDNAME)
+	@ElementIndex(name = TABLE + IndexNameMiddle + controllerUnitList_FIELDNAME + ElementIndexNameSuffix)
+	@CheckPersist(allowEmpty = true)
+	private List<String> controllerUnitList;
+
+	public static final String deepPath_FIELDNAME = "deepPath";
+	@FieldDescribe("是否使用更深的路径.")
+	@CheckPersist(allowEmpty = true)
+	@Column(name = ColumnNamePrefix + deepPath_FIELDNAME)
+	@Index(name = TABLE + IndexNameMiddle + deepPath_FIELDNAME)
+	private Boolean deepPath;
 
 	/**
 	 * 获取文件所属应用ID
@@ -452,5 +566,69 @@ public class FileInfo extends StorageObject {
 
 	public void setSeqNumber(Integer seqNumber) {
 		this.seqNumber = seqNumber;
+	}
+
+	public List<String> getReadIdentityList() {
+		return readIdentityList;
+	}
+
+	public void setReadIdentityList(List<String> readIdentityList) {
+		this.readIdentityList = readIdentityList;
+	}
+
+	public List<String> getReadUnitList() {
+		return readUnitList;
+	}
+
+	public void setReadUnitList(List<String> readUnitList) {
+		this.readUnitList = readUnitList;
+	}
+
+	public List<String> getEditIdentityList() {
+		return editIdentityList;
+	}
+
+	public void setEditIdentityList(List<String> editIdentityList) {
+		this.editIdentityList = editIdentityList;
+	}
+
+	public List<String> getEditUnitList() {
+		return editUnitList;
+	}
+
+	public void setEditUnitList(List<String> editUnitList) {
+		this.editUnitList = editUnitList;
+	}
+
+	public List<String> getControllerIdentityList() {
+		return controllerIdentityList;
+	}
+
+	public void setControllerIdentityList(List<String> controllerIdentityList) {
+		this.controllerIdentityList = controllerIdentityList;
+	}
+
+	public List<String> getControllerUnitList() {
+		return controllerUnitList;
+	}
+
+	public void setControllerUnitList(List<String> controllerUnitList) {
+		this.controllerUnitList = controllerUnitList;
+	}
+
+	public String getText() {
+		return text;
+	}
+
+	public void setText(String text) {
+		this.text = text;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
 	}
 }

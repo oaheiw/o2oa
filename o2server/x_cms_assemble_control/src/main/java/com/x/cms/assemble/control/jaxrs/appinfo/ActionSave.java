@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.gson.JsonElement;
+import com.x.base.core.project.annotation.FieldDescribe;
 import com.x.base.core.project.bean.WrapCopier;
 import com.x.base.core.project.bean.WrapCopierFactory;
 import com.x.base.core.project.cache.ApplicationCache;
@@ -145,6 +146,10 @@ public class ActionSave extends BaseAction {
 			wi.setCreatorPerson(effectivePerson.getDistinguishedName());
 			wi.setCreatorUnitName( unitName );
 			wi.setCreatorTopUnitName( topUnitName );
+
+			if( StringUtils.equals( "信息", wi.getDocumentType() ) && wi.getSendNotify() == null ) {
+				wi.setSendNotify( true );
+			}
 			
 			try {
 				appInfo = appInfoServiceAdv.save( wi, effectivePerson );
@@ -189,7 +194,10 @@ public class ActionSave extends BaseAction {
 	}
 
 	public static class Wi extends AppInfo {
+		
 		private static final long serialVersionUID = -6314932919066148113L;
+		
+		@FieldDescribe("指定用于操作的身份，可选参数")
 		private String identity = null;
 
 		public String getIdentity() {

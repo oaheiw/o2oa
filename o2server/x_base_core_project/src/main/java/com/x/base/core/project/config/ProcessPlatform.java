@@ -13,6 +13,19 @@ import com.x.base.core.project.tools.DefaultCharset;
 
 public class ProcessPlatform extends ConfigObject {
 
+	public final static Integer DEFAULT_FORMVERSIONPERIOD = 45;
+	public final static Integer DEFAULT_PROCESSVERSIONPERIOD = 45;
+	public final static Integer DEFAULT_SCRIPTVERSIONPERIOD = 45;
+
+	public final static String DEFAULT_DOCTOWORDTYPE = "local";
+
+	public final static String DOCTOWORDTYPE_LOCAL = "local";
+	public final static String DOCTOWORDTYPE_CLOUD = "cloud";
+
+	public final static String DEFAULT_DOCTOWORDDEFAULTFILENAME = "正文.docx";
+
+	public final static String DEFAULT_DOCTOWORDDEFAULTSITE = "$doc";
+
 	public static ProcessPlatform defaultInstance() {
 		return new ProcessPlatform();
 	}
@@ -22,7 +35,14 @@ public class ProcessPlatform extends ConfigObject {
 		this.expire = new Expire();
 		this.delay = new Delay();
 		this.reorganize = new Reorganize();
+		this.dataMerge = new DataMerge();
 		this.maintenanceIdentity = "";
+		this.formVersionPeriod = DEFAULT_FORMVERSIONPERIOD;
+		this.processVersionPeriod = DEFAULT_PROCESSVERSIONPERIOD;
+		this.scriptVersionPeriod = DEFAULT_SCRIPTVERSIONPERIOD;
+		this.docToWordType = DEFAULT_DOCTOWORDTYPE;
+		this.docToWordDefaultFileName = DEFAULT_DOCTOWORDDEFAULTFILENAME;
+		this.docToWordDefaultSite = DEFAULT_DOCTOWORDDEFAULTSITE;
 	}
 
 	@FieldDescribe("提醒设置,设置提醒间隔.")
@@ -40,8 +60,57 @@ public class ProcessPlatform extends ConfigObject {
 	@FieldDescribe("整理任务设置,将执行4个独立任务,1.删除无效的待办,2.删除流程或者应用不存在的工作,3.将活动节点错误的工作调度到开始节点,4.触发滞留时间过长的工作.")
 	private Reorganize reorganize;
 
+	@FieldDescribe("合并任务设置,定时触发合并任务,将已完成工作的Data从Item表中提取合并到WorkCompleted的Data字段中,默认工作完成后2年开始进行合并.")
+	private DataMerge dataMerge;
+
 	@FieldDescribe("维护身份,当工作发生意外错误,无法找到对应的处理人情况下,先尝试将工作分配给创建身份,如果创建身份也不可获取,那么分配给指定人员,默认情况下这个值为空.")
 	private String maintenanceIdentity;
+
+	@FieldDescribe("表单历史版本保留天数.")
+	private Integer formVersionPeriod;
+
+	@FieldDescribe("流程历史版本保留天数.")
+	private Integer processVersionPeriod;
+
+	@FieldDescribe("脚本历史版本保留天数.")
+	private Integer scriptVersionPeriod;
+
+	@FieldDescribe("HTML版式公文转换成Word文件方式,local,cloud.")
+	private String docToWordType;
+
+	@FieldDescribe("HTML版式公文转换成Word文件缺省文件名.")
+	private String docToWordDefaultFileName;
+
+	@FieldDescribe("HTML版式公文转换成Word文件缺省site.")
+	private String docToWordDefaultSite;
+
+	public Integer getFormVersionPeriod() {
+		return (formVersionPeriod == null || formVersionPeriod < 1) ? DEFAULT_FORMVERSIONPERIOD
+				: this.formVersionPeriod;
+	}
+
+	public Integer getProcessVersionPeriod() {
+		return (processVersionPeriod == null || processVersionPeriod < 1) ? DEFAULT_PROCESSVERSIONPERIOD
+				: this.processVersionPeriod;
+	}
+
+	public Integer getScriptVersionPeriod() {
+		return (scriptVersionPeriod == null || scriptVersionPeriod < 1) ? DEFAULT_SCRIPTVERSIONPERIOD
+				: this.scriptVersionPeriod;
+	}
+
+	public String getDocToWordType() {
+		return StringUtils.isEmpty(docToWordType) ? DEFAULT_DOCTOWORDTYPE : docToWordType;
+	}
+
+	public String getDocToWordDefaultFileName() {
+		return StringUtils.isEmpty(docToWordDefaultFileName) ? DEFAULT_DOCTOWORDDEFAULTFILENAME
+				: docToWordDefaultFileName;
+	}
+
+	public String getDocToWordDefaultSite() {
+		return StringUtils.isEmpty(docToWordDefaultSite) ? DEFAULT_DOCTOWORDDEFAULTSITE : docToWordDefaultSite;
+	}
 
 	public Press getPress() {
 		return this.press == null ? new Press() : this.press;
@@ -61,6 +130,14 @@ public class ProcessPlatform extends ConfigObject {
 
 	public Reorganize getReorganize() {
 		return this.reorganize == null ? new Reorganize() : this.reorganize;
+	}
+
+	public DataMerge getDataMerge() {
+		return this.dataMerge == null ? new DataMerge() : this.dataMerge;
+	}
+
+	public String getMaintenanceIdentity() {
+		return maintenanceIdentity;
 	}
 
 	public void save() throws Exception {
@@ -287,28 +364,55 @@ public class ProcessPlatform extends ConfigObject {
 
 	}
 
-	public void setUrge(Urge urge) {
-		this.urge = urge;
-	}
+	public static class DataMerge extends ConfigObject {
 
-	public void setExpire(Expire expire) {
-		this.expire = expire;
-	}
+		public static DataMerge defaultInstance() {
+			DataMerge o = new DataMerge();
+			return o;
+		}
 
-	public void setDelay(Delay delay) {
-		this.delay = delay;
-	}
+		public final static Boolean DEFAULT_ENABLE = false;
 
-	public void setReorganize(Reorganize reorganize) {
-		this.reorganize = reorganize;
-	}
+		public final static String DEFAULT_CRON = "30 30 6 * * ?";
 
-	public String getMaintenanceIdentity() {
-		return maintenanceIdentity;
-	}
+		public final static Integer DEFAULT_PERIOD = 365 * 2;
 
-	public void setMaintenanceIdentity(String maintenanceIdentity) {
-		this.maintenanceIdentity = maintenanceIdentity;
+		@FieldDescribe("是否启用")
+		private Boolean enable = DEFAULT_ENABLE;
+
+		@FieldDescribe("定时cron表达式")
+		private String cron = DEFAULT_CRON;
+
+		@FieldDescribe("期限,已完成工作结束间隔指定时间进行merge,默认两年后进行merge")
+		private Integer period = DEFAULT_PERIOD;
+
+		public String getCron() {
+			if (StringUtils.isNotEmpty(this.cron) && CronExpression.isValidExpression(this.cron)) {
+				return this.cron;
+			} else {
+				return DEFAULT_CRON;
+			}
+		}
+
+		public Boolean getEnable() {
+			return BooleanUtils.isTrue(this.enable) && (null != this.period) && (this.period > -1);
+		}
+
+		public void setCron(String cron) {
+			this.cron = cron;
+		}
+
+		public void setEnable(Boolean enable) {
+			this.enable = enable;
+		}
+
+		public Integer getPeriod() {
+			return period;
+		}
+
+		public void setPeriod(Integer period) {
+			this.period = period;
+		}
 	}
 
 }

@@ -16,6 +16,7 @@ import javax.persistence.UniqueConstraint;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.openjpa.persistence.jdbc.Index;
 
+import com.x.base.core.entity.AbstractPersistenceProperties;
 import com.x.base.core.entity.JpaObject;
 import com.x.base.core.entity.SliceJpaObject;
 import com.x.base.core.entity.annotation.CheckPersist;
@@ -33,6 +34,12 @@ import com.x.processplatform.core.entity.PersistenceProperties;
 						JpaObject.CREATETIMECOLUMN, JpaObject.UPDATETIMECOLUMN, JpaObject.SEQUENCECOLUMN }) })
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public class Route extends SliceJpaObject {
+
+	public static final String TYPE_NORMAL = "normal";
+	public static final String TYPE_APPENDTASK = "appendTask";
+
+	public static final String APPENDTASKIDENTITYTYPE_SCRIPT = "script";
+	public static final String APPENDTASKIDENTITYTYPE_CONFIG = "config";
 
 	private static final long serialVersionUID = -1151288890276589956L;
 	private static final String TABLE = PersistenceProperties.Element.Route.table;
@@ -60,11 +67,6 @@ public class Route extends SliceJpaObject {
 	}
 
 	/* 更新运行方法 */
-
-	// public static String[] FLA GS = new String[] { "id", "alias" };
-
-	/* flag标志位 */
-	/* Entity 默认字段结束 */
 
 	public static final String name_FIELDNAME = "name";
 	@FieldDescribe("名称.")
@@ -175,132 +177,288 @@ public class Route extends SliceJpaObject {
 	@Column(name = ColumnNamePrefix + sole_FIELDNAME)
 	private Boolean sole;
 
+	public static final String opinionRequired_FIELDNAME = "opinionRequired";
+	@FieldDescribe("路由意见是否必填.")
+	@CheckPersist(allowEmpty = true)
+	@Column(name = ColumnNamePrefix + opinionRequired_FIELDNAME)
+	private Boolean opinionRequired;
+
+	public static final String hiddenScript_FIELDNAME = "hiddenScript";
+	@IdReference(Script.class)
+	@FieldDescribe("路由隐藏脚本.")
+	@Column(length = length_255B, name = ColumnNamePrefix + hiddenScript_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String hiddenScript;
+
+	public static final String hiddenScriptText_FIELDNAME = "hiddenScriptText";
+	@FieldDescribe("路由隐藏脚本文本.")
+	@Lob
+	@Basic(fetch = FetchType.EAGER)
+	@Column(length = JpaObject.length_1M, name = ColumnNamePrefix + hiddenScriptText_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String hiddenScriptText;
+
+	public static final String displayNameScript_FIELDNAME = "displayNameScript";
+	@IdReference(Script.class)
+	@FieldDescribe("路由显示名称脚本.")
+	@Column(length = length_255B, name = ColumnNamePrefix + displayNameScript_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String displayNameScript;
+
+	public static final String displayNameScriptText_FIELDNAME = "displayNameScriptText";
+	@FieldDescribe("路由显示名称脚本文本.")
+	@Lob
+	@Basic(fetch = FetchType.EAGER)
+	@Column(length = JpaObject.length_1M, name = ColumnNamePrefix + displayNameScriptText_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String displayNameScriptText;
+
+	public static final String selectConfig_FIELDNAME = "selectConfig";
+	@FieldDescribe("路由选人设置文本.")
+	@Lob
+	@Basic(fetch = FetchType.EAGER)
+	@Column(length = JpaObject.length_1M, name = ColumnNamePrefix + selectConfig_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String selectConfig;
+
+	public static final String type_FIELDNAME = "type";
+	@FieldDescribe("路由类型")
+	@Column(length = JpaObject.length_64B, name = ColumnNamePrefix + type_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String type;
+
+	public static final String appendTaskIdentityType_FIELDNAME = "appendTaskIdentityType";
+	@FieldDescribe("添加待办方式.")
+	@Column(length = JpaObject.length_64B, name = ColumnNamePrefix + appendTaskIdentityType_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String appendTaskIdentityType;
+
+	public static final String appendTaskIdentityScript_FIELDNAME = "appendTaskIdentityScript";
+	@IdReference(Script.class)
+	@FieldDescribe("添加待办人脚本.")
+	@Column(length = AbstractPersistenceProperties.processPlatform_name_length, name = ColumnNamePrefix
+			+ appendTaskIdentityScript_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String appendTaskIdentityScript;
+
+	public static final String appendTaskIdentityScriptText_FIELDNAME = "appendTaskIdentityScriptText";
+	@FieldDescribe("添加待办人脚本文本.")
+	@Lob
+	@Basic(fetch = FetchType.EAGER)
+	@Column(length = JpaObject.length_1M, name = ColumnNamePrefix + appendTaskIdentityScriptText_FIELDNAME)
+	@CheckPersist(allowEmpty = true)
+	private String appendTaskIdentityScriptText;
+
+	public String getAppendTaskIdentityType() {
+		return appendTaskIdentityType;
+	}
+
+	public void setAppendTaskIdentityType(String appendTaskIdentityType) {
+		this.appendTaskIdentityType = appendTaskIdentityType;
+	}
+
+	public String getAppendTaskIdentityScript() {
+		return appendTaskIdentityScript;
+	}
+
+	public void setAppendTaskIdentityScript(String appendTaskIdentityScript) {
+		this.appendTaskIdentityScript = appendTaskIdentityScript;
+	}
+
+	public static String getAppendtaskidentityscriptFieldname() {
+		return appendTaskIdentityScript_FIELDNAME;
+	}
+
 	public String getName() {
 		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public String getDescription() {
-		return description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
 	}
 
 	public String getAlias() {
 		return alias;
 	}
 
-	public void setAlias(String alias) {
-		this.alias = alias;
-	}
-
-	public ActivityType getActivityType() {
-		return activityType;
-	}
-
-	public void setActivityType(ActivityType activityType) {
-		this.activityType = activityType;
-	}
-
-	public String getTrack() {
-		return track;
-	}
-
-	public void setTrack(String track) {
-		this.track = track;
+	public String getDescription() {
+		return description;
 	}
 
 	public String getProcess() {
 		return process;
 	}
 
-	public void setProcess(String process) {
-		this.process = process;
+	public ActivityType getActivityType() {
+		return activityType;
 	}
 
 	public String getActivity() {
 		return activity;
 	}
 
-	public void setActivity(String activity) {
-		this.activity = activity;
-	}
-
-	public String getPosition() {
-		return position;
-	}
-
-	public void setPosition(String position) {
-		this.position = position;
-	}
-
-	public String getScript() {
-		return script;
-	}
-
-	public void setScript(String script) {
-		this.script = script;
-	}
-
-	public String getScriptText() {
-		return scriptText;
-	}
-
-	public void setScriptText(String scriptText) {
-		this.scriptText = scriptText;
-	}
-
-	public Boolean getPassSameTarget() {
-		return passSameTarget;
-	}
-
-	public void setPassSameTarget(Boolean passSameTarget) {
-		this.passSameTarget = passSameTarget;
-	}
-
-	public Boolean getPassExpired() {
-		return passExpired;
-	}
-
-	public void setPassExpired(Boolean passExpired) {
-		this.passExpired = passExpired;
+	public String getTrack() {
+		return track;
 	}
 
 	public Integer getOrderNumber() {
 		return orderNumber;
 	}
 
-	public void setOrderNumber(Integer orderNumber) {
-		this.orderNumber = orderNumber;
+	public String getPosition() {
+		return position;
+	}
+
+	public String getScript() {
+		return script;
+	}
+
+	public String getScriptText() {
+		return scriptText;
+	}
+
+	public Boolean getPassSameTarget() {
+		return passSameTarget;
+	}
+
+	public Boolean getPassExpired() {
+		return passExpired;
 	}
 
 	public String getOpinion() {
 		return opinion;
 	}
 
-	public void setOpinion(String opinion) {
-		this.opinion = opinion;
-	}
-
 	public String getDecisionOpinion() {
 		return decisionOpinion;
-	}
-
-	public void setDecisionOpinion(String decisionOpinion) {
-		this.decisionOpinion = decisionOpinion;
 	}
 
 	public Boolean getSole() {
 		return sole;
 	}
 
+	public Boolean getOpinionRequired() {
+		return opinionRequired;
+	}
+
+	public String getHiddenScript() {
+		return hiddenScript;
+	}
+
+	public String getHiddenScriptText() {
+		return hiddenScriptText;
+	}
+
+	public String getDisplayNameScript() {
+		return displayNameScript;
+	}
+
+	public String getDisplayNameScriptText() {
+		return displayNameScriptText;
+	}
+
+	public String getSelectConfig() {
+		return selectConfig;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public void setAlias(String alias) {
+		this.alias = alias;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public void setProcess(String process) {
+		this.process = process;
+	}
+
+	public void setActivityType(ActivityType activityType) {
+		this.activityType = activityType;
+	}
+
+	public void setActivity(String activity) {
+		this.activity = activity;
+	}
+
+	public void setTrack(String track) {
+		this.track = track;
+	}
+
+	public void setOrderNumber(Integer orderNumber) {
+		this.orderNumber = orderNumber;
+	}
+
+	public void setPosition(String position) {
+		this.position = position;
+	}
+
+	public void setScript(String script) {
+		this.script = script;
+	}
+
+	public void setScriptText(String scriptText) {
+		this.scriptText = scriptText;
+	}
+
+	public void setPassSameTarget(Boolean passSameTarget) {
+		this.passSameTarget = passSameTarget;
+	}
+
+	public void setPassExpired(Boolean passExpired) {
+		this.passExpired = passExpired;
+	}
+
+	public void setOpinion(String opinion) {
+		this.opinion = opinion;
+	}
+
+	public void setDecisionOpinion(String decisionOpinion) {
+		this.decisionOpinion = decisionOpinion;
+	}
+
 	public void setSole(Boolean sole) {
 		this.sole = sole;
+	}
+
+	public void setOpinionRequired(Boolean opinionRequired) {
+		this.opinionRequired = opinionRequired;
+	}
+
+	public void setHiddenScript(String hiddenScript) {
+		this.hiddenScript = hiddenScript;
+	}
+
+	public void setHiddenScriptText(String hiddenScriptText) {
+		this.hiddenScriptText = hiddenScriptText;
+	}
+
+	public void setDisplayNameScript(String displayNameScript) {
+		this.displayNameScript = displayNameScript;
+	}
+
+	public void setDisplayNameScriptText(String displayNameScriptText) {
+		this.displayNameScriptText = displayNameScriptText;
+	}
+
+	public void setSelectConfig(String selectConfig) {
+		this.selectConfig = selectConfig;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getAppendTaskIdentityScriptText() {
+		return appendTaskIdentityScriptText;
+	}
+
+	public void setAppendTaskIdentityScriptText(String appendTaskIdentityScriptText) {
+		this.appendTaskIdentityScriptText = appendTaskIdentityScriptText;
 	}
 
 }

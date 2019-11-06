@@ -92,15 +92,15 @@ public class EmpowerAction extends StandardJaxrsAction {
 
 	@JaxrsMethodDescribe(value = "查询指定人员的授权委托.", action = ActionListWithPerson.class)
 	@GET
-	@Path("list/person/{person}")
+	@Path("list/person/{flag}")
 	@Produces(HttpMediaType.APPLICATION_JSON_UTF_8)
 	@Consumes(MediaType.APPLICATION_JSON)
 	public void listWithPerson(@Suspended final AsyncResponse asyncResponse, @Context HttpServletRequest request,
-			@JaxrsParameterDescribe("人员") @PathParam("person") String person) {
+			@JaxrsParameterDescribe("人员") @PathParam("flag") String flag) {
 		ActionResult<List<ActionListWithPerson.Wo>> result = new ActionResult<>();
 		EffectivePerson effectivePerson = this.effectivePerson(request);
 		try {
-			result = new ActionListWithPerson().execute(effectivePerson, person);
+			result = new ActionListWithPerson().execute(effectivePerson, flag);
 		} catch (Exception e) {
 			logger.error(e, effectivePerson, request, null);
 			result.error(e);
@@ -144,6 +144,7 @@ public class EmpowerAction extends StandardJaxrsAction {
 
 	@JaxrsMethodDescribe(value = "更新委托", action = ActionEdit.class)
 	@PUT
+	@Path("{id}")
 	@Produces(HttpMediaType.APPLICATION_JSON_UTF_8)
 	@Consumes(MediaType.APPLICATION_JSON)
 	public void edit(@Suspended final AsyncResponse asyncResponse, @Context HttpServletRequest request,
@@ -161,6 +162,7 @@ public class EmpowerAction extends StandardJaxrsAction {
 
 	@JaxrsMethodDescribe(value = "删除委托", action = ActionDelete.class)
 	@DELETE
+	@Path("{id}")
 	@Produces(HttpMediaType.APPLICATION_JSON_UTF_8)
 	@Consumes(MediaType.APPLICATION_JSON)
 	public void delete(@Suspended final AsyncResponse asyncResponse, @Context HttpServletRequest request,

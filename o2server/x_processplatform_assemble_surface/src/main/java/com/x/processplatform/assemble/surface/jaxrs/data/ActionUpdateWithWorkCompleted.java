@@ -1,5 +1,7 @@
 package com.x.processplatform.assemble.surface.jaxrs.data;
 
+import org.apache.commons.lang3.BooleanUtils;
+
 import com.google.gson.JsonElement;
 import com.x.base.core.container.EntityManagerContainer;
 import com.x.base.core.container.factory.EntityManagerContainerFactory;
@@ -18,16 +20,10 @@ class ActionUpdateWithWorkCompleted extends BaseAction {
 	ActionResult<Wo> execute(EffectivePerson effectivePerson, String id, JsonElement jsonElement) throws Exception {
 		try (EntityManagerContainer emc = EntityManagerContainerFactory.instance().create()) {
 			/** 防止提交空数据清空data */
-			if (jsonElement.isJsonNull()) {
-				throw new ExceptionNullData();
+			if (null == jsonElement || (!jsonElement.isJsonObject())) {
+				throw new ExceptionNotJsonObject();
 			}
-			if (jsonElement.isJsonArray()) {
-				throw new ExceptionArrayData();
-			}
-			if (jsonElement.isJsonPrimitive()) {
-				throw new ExceptionPrimitiveData();
-			}
-			if (jsonElement.isJsonObject() && jsonElement.getAsJsonObject().entrySet().isEmpty()) {
+			if (jsonElement.getAsJsonObject().entrySet().isEmpty()) {
 				throw new ExceptionEmptyData();
 			}
 			ActionResult<Wo> result = new ActionResult<>();
@@ -43,6 +39,9 @@ class ActionUpdateWithWorkCompleted extends BaseAction {
 					&& (!effectivePerson.isPerson(workCompleted.getCreatorPerson()))) {
 				throw new ExceptionWorkCompletedAccessDenied(effectivePerson.getDistinguishedName(),
 						workCompleted.getTitle(), workCompleted.getId());
+			}
+			if (BooleanUtils.isTrue(workCompleted.getDataMerged())) {
+				throw new ExceptionModifyDataMerged(workCompleted.getId());
 			}
 			this.updateData(business, workCompleted, jsonElement);
 			/** 在方法内进行了commit不需要再次进行commit */

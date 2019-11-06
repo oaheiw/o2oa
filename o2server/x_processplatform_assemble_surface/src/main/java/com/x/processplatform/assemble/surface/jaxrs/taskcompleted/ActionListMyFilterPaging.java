@@ -1,5 +1,6 @@
 package com.x.processplatform.assemble.surface.jaxrs.taskcompleted;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -8,6 +9,7 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import com.x.base.core.project.tools.DateTools;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.gson.JsonElement;
@@ -15,6 +17,7 @@ import com.x.base.core.container.EntityManagerContainer;
 import com.x.base.core.container.factory.EntityManagerContainerFactory;
 import com.x.base.core.entity.JpaObject;
 import com.x.base.core.project.annotation.FieldDescribe;
+import com.x.base.core.project.bean.NameValueCountPair;
 import com.x.base.core.project.bean.WrapCopier;
 import com.x.base.core.project.bean.WrapCopierFactory;
 import com.x.base.core.project.gson.GsonPropertyObject;
@@ -61,6 +64,12 @@ class ActionListMyFilterPaging extends BaseAction {
 		if (ListTools.isNotEmpty(wi.getProcessList())) {
 			p = cb.and(p, root.get(TaskCompleted_.process).in(wi.getProcessList()));
 		}
+		if(DateTools.isDateTimeOrDate(wi.getStartTime())){
+			p = cb.and(p, cb.greaterThan(root.get(TaskCompleted_.startTime), DateTools.parse(wi.getStartTime())));
+		}
+		if(DateTools.isDateTimeOrDate(wi.getEndTime())){
+			p = cb.and(p, cb.lessThan(root.get(TaskCompleted_.startTime), DateTools.parse(wi.getEndTime())));
+		}
 		if (ListTools.isNotEmpty(wi.getCreatorUnitList())) {
 			p = cb.and(p, root.get(TaskCompleted_.creatorUnit).in(wi.getCreatorUnitList()));
 		}
@@ -72,6 +81,9 @@ class ActionListMyFilterPaging extends BaseAction {
 		}
 		if (ListTools.isNotEmpty(wi.getActivityNameList())) {
 			p = cb.and(p, root.get(TaskCompleted_.activityName).in(wi.getActivityNameList()));
+		}
+		if (ListTools.isNotEmpty(wi.getCompletedList())) {
+			p = cb.and(p, root.get(TaskCompleted_.completed).in(wi.getCompletedList()));
 		}
 		if (StringUtils.isNotEmpty(wi.getKey())) {
 			String key = StringUtils.trim(StringUtils.replaceEach(wi.getKey(), new String[] { "\u3000", "?", "%" },
@@ -104,6 +116,12 @@ class ActionListMyFilterPaging extends BaseAction {
 		if (ListTools.isNotEmpty(wi.getProcessList())) {
 			p = cb.and(p, root.get(TaskCompleted_.process).in(wi.getProcessList()));
 		}
+		if(DateTools.isDateTimeOrDate(wi.getStartTime())){
+			p = cb.and(p, cb.greaterThan(root.get(TaskCompleted_.startTime), DateTools.parse(wi.getStartTime())));
+		}
+		if(DateTools.isDateTimeOrDate(wi.getEndTime())){
+			p = cb.and(p, cb.lessThan(root.get(TaskCompleted_.startTime), DateTools.parse(wi.getEndTime())));
+		}
 		if (ListTools.isNotEmpty(wi.getCreatorUnitList())) {
 			p = cb.and(p, root.get(TaskCompleted_.creatorUnit).in(wi.getCreatorUnitList()));
 		}
@@ -115,6 +133,9 @@ class ActionListMyFilterPaging extends BaseAction {
 		}
 		if (ListTools.isNotEmpty(wi.getActivityNameList())) {
 			p = cb.and(p, root.get(TaskCompleted_.activityName).in(wi.getActivityNameList()));
+		}
+		if (ListTools.isNotEmpty(wi.getCompletedList())) {
+			p = cb.and(p, root.get(TaskCompleted_.completed).in(wi.getCompletedList()));
 		}
 		if (StringUtils.isNotEmpty(wi.getKey())) {
 			String key = StringUtils.trim(StringUtils.replace(wi.getKey(), "\u3000", " "));
@@ -139,6 +160,12 @@ class ActionListMyFilterPaging extends BaseAction {
 		@FieldDescribe("流程")
 		private List<String> processList;
 
+		@FieldDescribe("开始时间yyyy-MM-dd HH:mm:ss")
+		private String startTime;
+
+		@FieldDescribe("结束时间yyyy-MM-dd HH:mm:ss")
+		private String endTime;
+
 		@FieldDescribe("活动名称")
 		private List<String> activityNameList;
 
@@ -151,11 +178,22 @@ class ActionListMyFilterPaging extends BaseAction {
 		@FieldDescribe("结束时间(月)")
 		private List<String> completedTimeMonthList;
 
+		@FieldDescribe("可选择的完成状态")
+		private List<Boolean> completedList;
+
 		@FieldDescribe("匹配关键字")
 		private String key;
 
 		public List<String> getApplicationList() {
 			return applicationList;
+		}
+
+		public List<Boolean> getCompletedList() {
+			return completedList;
+		}
+
+		public void setCompletedList(List<Boolean> completedList) {
+			this.completedList = completedList;
 		}
 
 		public void setApplicationList(List<String> applicationList) {
@@ -208,6 +246,22 @@ class ActionListMyFilterPaging extends BaseAction {
 
 		public void setCompletedTimeMonthList(List<String> completedTimeMonthList) {
 			this.completedTimeMonthList = completedTimeMonthList;
+		}
+
+		public String getStartTime() {
+			return startTime;
+		}
+
+		public void setStartTime(String startTime) {
+			this.startTime = startTime;
+		}
+
+		public String getEndTime() {
+			return endTime;
+		}
+
+		public void setEndTime(String endTime) {
+			this.endTime = endTime;
 		}
 
 	}

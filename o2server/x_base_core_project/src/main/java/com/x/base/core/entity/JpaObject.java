@@ -94,6 +94,11 @@ public abstract class JpaObject extends GsonPropertyObject implements Serializab
 			Arrays.asList(distributeFactor_FIELDNAME, sequence_FIELDNAME, password_FIELDNAME, scratchString_FIELDNAME,
 					scratchBoolean_FIELDNAME, scratchDate_FIELDNAME, scratchInteger_FIELDNAME));
 
+	public static final List<String> FieldsDefault = ListUtils
+			.unmodifiableList(Arrays.asList(id_FIELDNAME, key_FIELDNAME, createTime_FIELDNAME, updateTime_FIELDNAME,
+					sequence_FIELDNAME, distributeFactor_FIELDNAME, password_FIELDNAME, scratchString_FIELDNAME,
+					scratchBoolean_FIELDNAME, scratchDate_FIELDNAME, scratchInteger_FIELDNAME));
+
 	@FieldDescribe("创建时间,自动生成,索引创建在约束中.")
 	@Column(name = ColumnNamePrefix + createTime_FIELDNAME)
 	private Date createTime;
@@ -235,7 +240,7 @@ public abstract class JpaObject extends GsonPropertyObject implements Serializab
 	public static final String ORDERCOLUMNCOLUMN = "xorderColumn";
 
 	public static final String DISTINGUISHEDNAME = "distinguishedName";
-	
+
 	public static final String TYPE_STRING = "string";
 	public static final String TYPE_INTEGER = "integer";
 	public static final String TYPE_LONG = "long";
@@ -271,19 +276,6 @@ public abstract class JpaObject extends GsonPropertyObject implements Serializab
 			values.add(PropertyUtils.getProperty(this, f.getName()).toString());
 		}
 		return ListTools.trim(values, true, true);
-	}
-
-	public Object get(String name) throws Exception {
-		return PropertyUtils.getProperty(this, name);
-	}
-
-	@SuppressWarnings("unchecked")
-	public <T> T get(String name, Class<T> clazz) throws Exception {
-		Object o = get(name);
-		if (null == o) {
-			return null;
-		}
-		return (T) o;
 	}
 
 	public int hashCode() {

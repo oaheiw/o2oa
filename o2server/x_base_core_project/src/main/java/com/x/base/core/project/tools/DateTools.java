@@ -1,5 +1,6 @@
 package com.x.base.core.project.tools;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Objects;
@@ -537,4 +538,72 @@ public class DateTools {
 		}
 		return calendar.getTime();
 	}
+
+	/**
+	 * 根据需要调整时间
+	 * @param dateTime
+	 * @param dayAdjust
+	 * @param hourAdjust
+	 * @param minuteAdjust
+	 * @param secondAdjust
+	 * @return
+	 */
+	public static  Date getAdjustTimeDay( Date dateTime, Integer dayAdjust, Integer hourAdjust, Integer minuteAdjust, Integer secondAdjust) {
+		Calendar calendar = Calendar.getInstance();
+		if(dateTime==null){
+			dateTime = new Date();
+		}
+		calendar.setTime( dateTime );
+		if ((null != dayAdjust) && (dayAdjust != 0)) {
+			calendar.add(Calendar.DAY_OF_MONTH, dayAdjust );
+		}
+		if ((null != hourAdjust) && (hourAdjust != 0)) {
+			calendar.add(Calendar.HOUR_OF_DAY, dayAdjust );
+		}
+		if ((null != minuteAdjust) && (minuteAdjust != 0)) {
+			calendar.add(Calendar.MINUTE, minuteAdjust );
+		}
+		if ((null != secondAdjust) && (secondAdjust != 0)) {
+			calendar.add(Calendar.SECOND, secondAdjust );
+		}
+		return calendar.getTime();
+	}
+	
+	  /** 
+	  * 判断当前日期是星期几
+	  * @param dateTime 修要判断的时间 
+	  * @return dayForWeek 判断结果
+	  * @Exception 发生异常
+	  */  
+	public static int dayForWeek(String dateTime ) throws Exception {
+		Calendar c = Calendar.getInstance();
+		c.setTime( DateUtils.parseDate( dateTime, format_yyyyMMdd) ); 
+		int dayForWeek = 0 ;
+		if (c.get(Calendar.DAY_OF_WEEK) == 1 ){ 
+			dayForWeek = 7;
+		}else {
+			dayForWeek = c.get(Calendar.DAY_OF_WEEK) - 1;
+		}
+		return dayForWeek; 
+	}
+	
+	 /** 
+	  * 判断当前日期是星期几
+	  * @param dateTime 修要判断的时间 
+	  * @return dayForWeek 判断结果
+	  * @Exception 发生异常
+	  */  
+	public static int dayForWeek( Date dateTime ) throws Exception {
+		Calendar c = Calendar.getInstance();
+		c.setTime( dateTime ); 
+		int dayForWeek = 0 ;
+		if (c.get(Calendar.DAY_OF_WEEK) == 1 ){ 
+			dayForWeek = 7;
+		}else {
+			dayForWeek = c.get(Calendar.DAY_OF_WEEK) - 1;
+		}
+		return dayForWeek; 
+	}
+
+	
 }
